@@ -1,4 +1,9 @@
-import type { MarketDataFilter, MarketDataInput, MarketDataRecord } from '../types'
+import type {
+  MarketDataFilter,
+  MarketDataInput,
+  MarketDataRecord,
+  MarketDataSubpage
+} from '../types'
 
 export type DbMarketDataRow = {
   id: number
@@ -14,6 +19,7 @@ export type DbMarketDataRow = {
   notion_page_id: string | null
   notion_parent_id: string | null
   subpage_path: string | null
+  subpages: string | null
   last_synced_at: string | null
   created_at: string | null
   updated_at: string | null
@@ -34,6 +40,7 @@ const SELECT_BASE = `
     notion_page_id,
     notion_parent_id,
     subpage_path,
+    subpages,
     last_synced_at,
     created_at,
     updated_at
@@ -52,6 +59,25 @@ const toRecord = (row: DbMarketDataRow): MarketDataRecord => {
     }
   }
 
+  const parseSubpages = (value: string | null | undefined): MarketDataSubpage[] => {
+    if (!value) return []
+    try {
+      const parsed = JSON.parse(value)
+      if (!Array.isArray(parsed)) return []
+      return parsed
+        .map((item) => ({
+          id: String(item.id ?? ''),
+          title: String(item.title ?? ''),
+          path: String(item.path ?? ''),
+          markdown: String(item.markdown ?? '')
+        }))
+        .filter((item) => item.id.length > 0)
+    } catch (error) {
+      console.warn('[marketData] failed to parse JSON subpages', error)
+      return []
+    }
+  }
+
   return {
     id: row.id,
     segment: row.segment,
@@ -66,6 +92,7 @@ const toRecord = (row: DbMarketDataRow): MarketDataRecord => {
     notionPageId: row.notion_page_id ?? null,
     notionParentId: row.notion_parent_id ?? null,
     subpagePath: row.subpage_path ?? null,
+    subpages: parseSubpages(row.subpages),
     lastSyncedAt: row.last_synced_at ?? null,
     createdAt: row.created_at ?? null,
     updatedAt: row.updated_at ?? null
@@ -130,6 +157,18 @@ const serialiseArray = (items: string[] | null | undefined): string | null => {
   return JSON.stringify(items)
 }
 
+const serialiseSubpages = (items: MarketDataSubpage[] | null | undefined): string | null => {
+  if (!items || items.length === 0) return null
+  return JSON.stringify(
+    items.map((item) => ({
+      id: item.id,
+      title: item.title,
+      path: item.path,
+      markdown: item.markdown
+    }))
+  )
+}
+
 export const upsertMarketData = async (
   db: D1Database,
   input: MarketDataInput
@@ -137,6 +176,7 @@ export const upsertMarketData = async (
   const issue = normaliseIssue(input.issue ?? null)
   const players = serialiseArray(input.players ?? null)
   const links = serialiseArray(input.links ?? null)
+  const subpages = serialiseSubpages(input.subpages ?? null)
   const nowIso = new Date().toISOString()
 
   const payload = {
@@ -152,6 +192,7 @@ export const upsertMarketData = async (
     notionPageId: input.notionPageId ?? null,
     notionParentId: input.notionParentId ?? null,
     subpagePath: input.subpagePath ?? null,
+    subpages,
     lastSyncedAt: input.lastSyncedAt ?? nowIso
   }
 
@@ -171,6 +212,7 @@ export const upsertMarketData = async (
              notion_page_id = ?,
              notion_parent_id = ?,
              subpage_path = ?,
+             subpages = ?,
              last_synced_at = ?,
              updated_at = datetime('now')
          WHERE id = ?`
@@ -188,6 +230,7 @@ export const upsertMarketData = async (
         payload.notionPageId,
         payload.notionParentId,
         payload.subpagePath,
+        payload.subpages,
         payload.lastSyncedAt,
         targetId
       )
@@ -228,10 +271,11 @@ export const upsertMarketData = async (
         notion_page_id,
         notion_parent_id,
         subpage_path,
+        subpages,
         last_synced_at,
         created_at,
         updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`
     )
     .bind(
       payload.segment,
@@ -246,6 +290,7 @@ export const upsertMarketData = async (
       payload.notionPageId,
       payload.notionParentId,
       payload.subpagePath,
+      payload.subpages,
       payload.lastSyncedAt
     )
     .run()

@@ -1,7 +1,9 @@
 import { Hono } from 'hono'
 import { serveStatic } from 'hono/cloudflare-workers'
 import { createYoga } from 'graphql-yoga'
+import type { ExportedHandlerScheduledHandler } from '@cloudflare/workers-types'
 import { schema } from './server/graphql/schema'
+import { syncNotionMarketData } from './server/services/notionSync'
 import type { Bindings, GraphQLContext } from './server/types'
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -46,8 +48,35 @@ app.get('/healthz', (c) =>
   })
 )
 
+app.post('/api/sync', async (c) => {
+  const payload = await c.req
+    .json()
+    .catch(() => ({ segment: undefined })) as { segment?: string | null }
+  const segment = typeof payload?.segment === 'string' ? payload.segment.trim() : undefined
+
+  try {
+    const result = await syncNotionMarketData(c.env, { segment })
+    return c.json({ status: 'ok', requestedSegment: segment ?? null, result })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Notion同期でエラーが発生しました'
+    return c.json({ status: 'error', message }, 500)
+  }
+})
+
 app.all('/graphql', (c) => yoga.handleRequest(c.req.raw, { env: c.env }))
 
 app.get('/', (c) => c.html(HTML_TEMPLATE))
+
+export const scheduled: ExportedHandlerScheduledHandler<Bindings> = async (_event, env, ctx) => {
+  ctx.waitUntil(
+    syncNotionMarketData(env)
+      .then((result) => {
+        console.log('[cron] notion sync completed', result)
+      })
+      .catch((error) => {
+        console.error('[cron] notion sync failed', error)
+      })
+  )
+}
 
 export default app

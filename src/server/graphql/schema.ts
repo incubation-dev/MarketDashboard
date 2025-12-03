@@ -16,6 +16,13 @@ const filterSchema = z.object({
   notionPageId: z.string().min(1).optional()
 })
 
+const subpageInputSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  path: z.string().optional().nullable(),
+  markdown: z.string().min(1)
+})
+
 const inputSchema = z.object({
   id: z.coerce.number().int().positive().optional(),
   segment: z.string().min(1),
@@ -30,10 +37,18 @@ const inputSchema = z.object({
   notionPageId: z.string().optional().nullable(),
   notionParentId: z.string().optional().nullable(),
   subpagePath: z.string().optional().nullable(),
+  subpages: z.array(subpageInputSchema).optional().nullable(),
   lastSyncedAt: z.string().optional().nullable()
 })
 
 const typeDefs = /* GraphQL */ `
+  type MarketDataSubpage {
+    id: ID!
+    title: String!
+    path: String
+    markdown: String!
+  }
+
   type MarketData {
     id: ID!
     segment: String!
@@ -48,6 +63,7 @@ const typeDefs = /* GraphQL */ `
     notionPageId: String
     notionParentId: String
     subpagePath: String
+    subpages: [MarketDataSubpage!]!
     lastSyncedAt: String
     createdAt: String
     updatedAt: String
@@ -59,6 +75,13 @@ const typeDefs = /* GraphQL */ `
     issueContains: String
     year: Int
     notionPageId: String
+  }
+
+  input MarketDataSubpageInput {
+    id: ID!
+    title: String!
+    path: String
+    markdown: String!
   }
 
   input MarketDataInput {
@@ -75,6 +98,7 @@ const typeDefs = /* GraphQL */ `
     notionPageId: String
     notionParentId: String
     subpagePath: String
+    subpages: [MarketDataSubpageInput!]
     lastSyncedAt: String
   }
 

@@ -1,5 +1,14 @@
 export type Bindings = {
   DB: D1Database
+  NOTION_API_KEY?: string
+  NOTION_DATABASE_ID?: string
+}
+
+export type MarketDataSubpage = {
+  id: string
+  title: string
+  path: string
+  markdown: string
 }
 
 export type MarketDataRecord = {
@@ -16,6 +25,7 @@ export type MarketDataRecord = {
   notionPageId: string | null
   notionParentId: string | null
   subpagePath: string | null
+  subpages: MarketDataSubpage[]
   lastSyncedAt: string | null
   createdAt: string | null
   updatedAt: string | null
@@ -43,6 +53,7 @@ export type MarketDataInput = {
   notionPageId?: string | null
   notionParentId?: string | null
   subpagePath?: string | null
+  subpages?: MarketDataSubpage[] | null
   lastSyncedAt?: string | null
 }
 

@@ -1,56 +1,315 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { animate, stagger } from '@motionone/dom'
+import { FilterBar } from './components/FilterBar'
+import { MarketBubbleChart } from './components/MarketBubbleChart'
 import { PlayerMetricCard } from './components/PlayerMetricCard'
-import { SampleBubbleChart } from './components/SampleBubbleChart'
+import { DetailPanel } from './components/DetailPanel'
+import { StatusToast } from './components/StatusToast'
+import { LoadingOverlay } from './components/LoadingOverlay'
+import { fetchAllMarketData, type MarketDataRecord } from './lib/api'
+import { formatMarketSize, formatPercent } from './lib/format'
 
-const samplePlayers = [
-  { name: 'A-Company', share: 32.2 },
-  { name: 'B-Company', share: 21.1 },
-  { name: 'C-Company', share: 14.6 }
-]
+type StatusState = {
+  message: string
+  type: 'success' | 'error'
+} | null
+
+type AggregateMetrics = {
+  totalMarketSize: number
+  averageGrowth: number | null
+  averageShare: number | null
+}
+
+const computeAggregateMetrics = (records: MarketDataRecord[]): AggregateMetrics => {
+  if (records.length === 0) {
+    return {
+      totalMarketSize: 0,
+      averageGrowth: null,
+      averageShare: null
+    }
+  }
+
+  const totalMarketSize = records.reduce((sum, record) => sum + (record.marketSize ?? 0), 0)
+
+  const growthValues = records.map((record) => record.growthRate).filter((value) => typeof value === 'number') as number[]
+  const averageGrowth =
+    growthValues.length > 0
+      ? growthValues.reduce((sum, value) => sum + value, 0) / growthValues.length
+      : null
+
+  const shareValues = records.map((record) => record.top10Ratio).filter((value) => typeof value === 'number') as number[]
+  const averageShare =
+    shareValues.length > 0
+      ? shareValues.reduce((sum, value) => sum + value, 0) / shareValues.length
+      : null
+
+  return {
+    totalMarketSize,
+    averageGrowth,
+    averageShare
+  }
+}
+
+const collectTopPlayers = (records: MarketDataRecord[]): string[] => {
+  const counter = new Map<string, number>()
+  for (const record of records) {
+    for (const player of record.players) {
+      const current = counter.get(player) ?? 0
+      counter.set(player, current + 1)
+    }
+  }
+  return Array.from(counter.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([player]) => player)
+}
+
+const deriveOverlayText = (state: { loading: boolean; ai: boolean; sync: boolean }): string => {
+  if (state.ai) return 'AIで市場データを更新しています...'
+  if (state.sync) return 'Notionとデータを同期しています...'
+  return '最新データを取得中...'
+}
 
 export function App(): JSX.Element {
-  const chartData = useMemo(
-    () => [
-      { segment: 'Smart Home Energy', growth: 18.2, share: 42.1, size: 2800 },
-      { segment: 'HVAC Optimization', growth: 12.4, share: 36.2, size: 1800 },
-      { segment: 'Grid Flexibility', growth: 23.5, share: 18.6, size: 3800 }
-    ],
-    []
-  )
+  const [records, setRecords] = useState<MarketDataRecord[]>([])
+  const [loading, setLoading] = useState(true)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [syncLoading, setSyncLoading] = useState(false)
+  const [status, setStatus] = useState<StatusState>(null)
+  const [refreshToken, setRefreshToken] = useState(0)
+
+  const [selectedSegment, setSelectedSegment] = useState<string>('ALL')
+  const [issueKeyword, setIssueKeyword] = useState<string>('')
+  const [selectedYear, setSelectedYear] = useState<number | 'ALL'>('ALL')
+  const [selectedRecord, setSelectedRecord] = useState<MarketDataRecord | null>(null)
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true)
+      try {
+        const data = await fetchAllMarketData()
+        setRecords(data)
+      } catch (error) {
+        console.error('[ui] failed to load market data', error)
+        setStatus({ message: '市場データの取得に失敗しました', type: 'error' })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    load()
+  }, [refreshToken])
+
+  useEffect(() => {
+    if (status) {
+      const timer = window.setTimeout(() => setStatus(null), 4000)
+      return () => window.clearTimeout(timer)
+    }
+    return undefined
+  }, [status])
+
+  const segments = useMemo(() => {
+    return Array.from(new Set(records.map((record) => record.segment))).sort((a, b) => a.localeCompare(b))
+  }, [records])
+
+  const years = useMemo(() => {
+    return Array.from(new Set(records.map((record) => record.year))).sort((a, b) => b - a)
+  }, [records])
+
+  const keyword = issueKeyword.trim().toLowerCase()
+
+  const filteredRecords = useMemo(() => {
+    return records.filter((record) => {
+      if (selectedSegment !== 'ALL' && record.segment !== selectedSegment) return false
+      if (selectedYear !== 'ALL' && record.year !== selectedYear) return false
+      if (keyword.length > 0) {
+        const haystacks = [record.issue, record.summary, ...record.players].filter(Boolean)
+        const match = haystacks.some((value) => value?.toLowerCase().includes(keyword))
+        if (!match) return false
+      }
+      return true
+    })
+  }, [records, selectedSegment, selectedYear, keyword])
+
+  useEffect(() => {
+    if (filteredRecords.length === 0) {
+      setSelectedRecord(null)
+      return
+    }
+
+    setSelectedRecord((current) => {
+      if (current && filteredRecords.some((record) => record.id === current.id)) {
+        return current
+      }
+      return filteredRecords[0]
+    })
+  }, [filteredRecords])
+
+  useEffect(() => {
+    if (filteredRecords.length === 0) return
+    animate('[data-animate]', { opacity: [0, 1], y: [16, 0] }, { duration: 0.7, delay: stagger(0.05) })
+  }, [filteredRecords])
+
+  const aggregate = useMemo(() => computeAggregateMetrics(filteredRecords), [filteredRecords])
+  const aggregatedPlayers = useMemo(() => collectTopPlayers(filteredRecords), [filteredRecords])
+
+  const handleRunResearch = async () => {
+    if (selectedSegment === 'ALL' && segments.length > 0) {
+      setSelectedSegment(segments[0])
+    }
+    const targetSegment = selectedSegment === 'ALL' ? segments[0] : selectedSegment
+    if (!targetSegment) {
+      setStatus({ message: '先に対象セグメントを選択してください', type: 'error' })
+      return
+    }
+
+    const issueForAi = keyword.length > 0 ? issueKeyword.trim() : selectedRecord?.issue ?? null
+    const yearForAi = selectedYear === 'ALL' ? selectedRecord?.year ?? new Date().getFullYear() : selectedYear
+
+    setAiLoading(true)
+    setStatus(null)
+    try {
+      const response = await fetch('/api/research', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          segment: targetSegment,
+          issue: issueForAi && issueForAi.length > 0 ? issueForAi : null,
+          year: yearForAi
+        })
+      })
+
+      const json = await response.json().catch(() => ({ status: 'error', message: 'AIレスポンスの解析に失敗しました' }))
+      if (!response.ok || json.status !== 'ok') {
+        throw new Error(json.message ?? 'AI更新に失敗しました')
+      }
+
+      setStatus({ message: 'AIが市場データを最新情報に更新しました', type: 'success' })
+      setRefreshToken((prev) => prev + 1)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'AI更新に失敗しました'
+      setStatus({ message, type: 'error' })
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  const handleSync = async () => {
+    setSyncLoading(true)
+    setStatus(null)
+    try {
+      const response = await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          segment: selectedSegment === 'ALL' ? undefined : selectedSegment
+        })
+      })
+
+      const json = await response.json().catch(() => ({ status: 'error', message: 'Notion同期レスポンスの解析に失敗しました' }))
+      if (!response.ok || json.status !== 'ok') {
+        throw new Error(json.message ?? 'Notion同期に失敗しました')
+      }
+
+      setStatus({ message: 'Notionとの同期が完了しました', type: 'success' })
+      setRefreshToken((prev) => prev + 1)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Notion同期に失敗しました'
+      setStatus({ message, type: 'error' })
+    } finally {
+      setSyncLoading(false)
+    }
+  }
+
+  const overlayActive = loading || aiLoading || syncLoading
+  const overlayText = deriveOverlayText({ loading, ai: aiLoading, sync: syncLoading })
+
+  const metricCards = [
+    {
+      label: '対象市場規模 (合計)',
+      value: formatMarketSize(aggregate.totalMarketSize)
+    },
+    {
+      label: '平均成長率',
+      value: formatPercent(aggregate.averageGrowth)
+    },
+    {
+      label: '平均市場占有率',
+      value: formatPercent(aggregate.averageShare)
+    }
+  ]
 
   return (
-    <div className="min-h-screen bg-base-100 text-base-content">
-      <div className="relative overflow-hidden pb-24">
-        <div className="absolute inset-0 bg-gradient-to-br from-brand/20 via-transparent to-transparent blur-3xl" />
-        <header className="relative mx-auto flex max-w-6xl flex-col gap-4 px-6 pt-16">
-          <span className="badge badge-outline w-fit border-brand/60 bg-brand/10 text-xs uppercase tracking-[0.3em] text-brand">
+    <div className="min-h-screen bg-gradient-to-br from-black via-neutral-950 to-slate-900 text-base-content">
+      <div className="relative isolate overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,#aa000033,transparent_55%),radial-gradient(circle_at_bottom_right,#1d4ed833,transparent_55%)]" />
+
+        <header className="mx-auto max-w-6xl px-6 pt-16 pb-10" data-animate>
+          <span className="badge badge-outline border-brand/50 bg-brand/10 text-xs uppercase tracking-[0.4em] text-brand">
             Market Intelligence
           </span>
-          <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+          <h1 className="mt-6 text-4xl font-semibold tracking-tight text-white sm:text-5xl">
             Notion-Driven Market Intelligence Dashboard
           </h1>
-          <p className="max-w-3xl text-base text-slate-200/80">
-            最新の市場セグメントトレンドをNotionから取り込み、AIがリアルタイムでアップデート。戦略の選択肢をスムーズに可視化します。
+          <p className="mt-3 max-w-3xl text-sm text-slate-300">
+            NotionをマスターDBとして活用し、AIが自動で市場動向を補完。リアルタイムの可視化と分析レポート生成をワンストップで実現します。
           </p>
         </header>
+
+        <main className="mx-auto max-w-6xl space-y-8 px-6 pb-24">
+          <FilterBar
+            segments={segments}
+            selectedSegment={selectedSegment}
+            onSegmentChange={setSelectedSegment}
+            issueKeyword={issueKeyword}
+            onIssueChange={setIssueKeyword}
+            years={years}
+            selectedYear={selectedYear}
+            onYearChange={setSelectedYear}
+            onRunResearch={handleRunResearch}
+            researchLoading={aiLoading}
+            onSync={handleSync}
+            syncLoading={syncLoading}
+          />
+
+          <section className="grid gap-6 lg:grid-cols-[1.75fr_1fr]">
+            <div className="rounded-3xl border border-white/10 bg-black/40 p-6 shadow-soft backdrop-blur-xl">
+              <MarketBubbleChart
+                data={filteredRecords}
+                selectedId={selectedRecord?.id}
+                onSelect={setSelectedRecord}
+              />
+            </div>
+            <div className="space-y-6">
+              <div className="grid gap-3" data-animate>
+                {metricCards.map((metric) => (
+                  <div
+                    key={metric.label}
+                    className="rounded-3xl border border-white/10 bg-white/5 px-5 py-4 text-sm text-slate-200"
+                  >
+                    <p className="text-xs uppercase tracking-[0.3em] text-slate-400">{metric.label}</p>
+                    <p className="mt-2 text-lg font-semibold text-white">{metric.value}</p>
+                  </div>
+                ))}
+              </div>
+              <PlayerMetricCard
+                title="主要プレイヤー"
+                subtitle="頻出企業"
+                players={aggregatedPlayers}
+              />
+            </div>
+          </section>
+
+          <DetailPanel record={selectedRecord} />
+        </main>
       </div>
 
-      <main className="mx-auto flex max-w-6xl flex-col gap-8 px-6 pb-24">
-        <section className="grid gap-6 md:grid-cols-[1.5fr_1fr]">
-          <div className="rounded-3xl border border-white/5 bg-base-200/50 p-6 shadow-soft backdrop-blur-xl">
-            <SampleBubbleChart data={chartData} />
-          </div>
-          <div className="space-y-6">
-            <PlayerMetricCard title="主要プレイヤー" players={samplePlayers} />
-            <div className="rounded-3xl border border-white/5 bg-base-200/50 p-6 backdrop-blur-xl">
-              <h2 className="mb-3 text-lg font-semibold text-white">サマリー</h2>
-              <p className="text-sm leading-relaxed text-slate-200/70">
-                このセクションはNotionサブページとAIサマリーから生成される市場概要と課題の抜粋が表示されます。
-              </p>
-            </div>
-          </div>
-        </section>
-      </main>
+      {overlayActive && <LoadingOverlay text={overlayText} />}
+      <StatusToast
+        message={status?.message ?? null}
+        type={status?.type ?? 'success'}
+        onClose={() => setStatus(null)}
+      />
     </div>
   )
 }

@@ -6,6 +6,8 @@ import { z } from 'zod'
 import { schema } from './server/graphql/schema'
 import { syncNotionMarketData } from './server/services/notionSync'
 import { runMarketResearchAndPersist } from './server/services/aiResearchAgent'
+import { generatePdfReport } from './server/services/pdfReport'
+import { getMarketDataById } from './server/db/marketData'
 import type { Bindings, GraphQLContext } from './server/types'
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -22,6 +24,11 @@ const researchRequestSchema = z.object({
   segment: z.string().min(1, 'segment is required'),
   issue: z.string().optional().nullable(),
   year: z.coerce.number().int().min(2000).max(2100)
+})
+
+const reportRequestSchema = z.object({
+  id: z.coerce.number().int().positive(),
+  chartImageData: z.string().optional().nullable()
 })
 
 const HTML_TEMPLATE = `<!DOCTYPE html>
@@ -96,6 +103,36 @@ app.post('/api/research', async (c) => {
   } catch (error) {
     console.error('[api/research] failed', error)
     const message = error instanceof Error ? error.message : 'AIリサーチに失敗しました'
+    return c.json({ status: 'error', message }, 500)
+  }
+})
+
+app.post('/api/report', async (c) => {
+  const payload = await c.req.json().catch(() => ({}))
+
+  try {
+    const input = reportRequestSchema.parse(payload)
+    const record = await getMarketDataById(c.env.DB, input.id)
+    if (!record) {
+      return c.json({ status: 'error', message: '指定された市場データが見つかりません' }, 404)
+    }
+
+    const pdfBuffer = await generatePdfReport(c.env, record, {
+      chartImageData: input.chartImageData ?? null,
+      aiModel: 'gpt-5.1'
+    })
+
+    const filename = `${record.segment.replace(/[^a-zA-Z0-9\-_.]/g, '_')}_${record.year}.pdf`
+
+    return new Response(pdfBuffer, {
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${filename}"`
+      }
+    })
+  } catch (error) {
+    console.error('[api/report] failed', error)
+    const message = error instanceof Error ? error.message : 'PDFレポート生成に失敗しました'
     return c.json({ status: 'error', message }, 500)
   }
 })

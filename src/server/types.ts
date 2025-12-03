@@ -4,6 +4,7 @@ export type Bindings = {
   NOTION_DATABASE_ID?: string
   OPENAI_API_KEY?: string
   SERPAPI_KEY?: string
+  PDFSHIFT_API_KEY?: string
 }
 
 export type MarketDataSubpage = {

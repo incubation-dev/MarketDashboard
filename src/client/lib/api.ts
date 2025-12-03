@@ -83,3 +83,27 @@ export async function fetchAllMarketData(): Promise<MarketDataRecord[]> {
 
   return records as MarketDataRecord[]
 }
+
+export async function generatePdfReportRequest(params: {
+  id: number
+  chartImageData?: string | null
+}): Promise<Blob> {
+  const response = await fetch('/api/report', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      id: params.id,
+      chartImageData: params.chartImageData ?? null
+    })
+  })
+
+  if (!response.ok) {
+    const errorJson = await response.json().catch(() => null)
+    const message = errorJson?.message ?? `PDF生成リクエストに失敗しました (${response.status})`
+    throw new Error(message)
+  }
+
+  return response.blob()
+}

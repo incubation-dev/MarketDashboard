@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { forwardRef, useMemo } from 'react'
 import { Bubble } from 'react-chartjs-2'
 import {
   Chart as ChartJS,
@@ -9,6 +9,7 @@ import {
   Legend,
   Filler
 } from 'chart.js'
+import type { ChartJSOrUndefined } from 'react-chartjs-2'
 import type { MarketDataRecord } from '../lib/api'
 import { formatMarketSize, formatPercent } from '../lib/format'
 
@@ -25,7 +26,8 @@ const bubblePalette = ['#f87171', '#fb923c', '#facc15', '#38bdf8', '#34d399', '#
 const fallbackValue = (value: number | null | undefined, defaultValue: number) =>
   typeof value === 'number' && Number.isFinite(value) ? value : defaultValue
 
-export function MarketBubbleChart({ data, selectedId, onSelect }: MarketBubbleChartProps): JSX.Element {
+export const MarketBubbleChart = forwardRef<ChartJSOrUndefined<'bubble'>, MarketBubbleChartProps>(
+  ({ data, selectedId, onSelect }, ref) => {
   const chartData = useMemo(() => {
     if (data.length === 0) {
       return {
@@ -83,6 +85,7 @@ export function MarketBubbleChart({ data, selectedId, onSelect }: MarketBubbleCh
         </p>
       </div>
       <Bubble
+        ref={ref}
         className="h-full w-full"
         data={chartData}
         options={{
@@ -155,3 +158,6 @@ export function MarketBubbleChart({ data, selectedId, onSelect }: MarketBubbleCh
     </div>
   )
 }
+)
+
+MarketBubbleChart.displayName = 'MarketBubbleChart'

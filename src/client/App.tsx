@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { animate, stagger } from '@motionone/dom'
 import { FilterBar } from './components/FilterBar'
 import { MarketBubbleChart } from './components/MarketBubbleChart'
+import type { ChartJSOrUndefined } from 'react-chartjs-2'
 import { PlayerMetricCard } from './components/PlayerMetricCard'
 import { DetailPanel } from './components/DetailPanel'
 import { StatusToast } from './components/StatusToast'
 import { LoadingOverlay } from './components/LoadingOverlay'
-import { fetchAllMarketData, type MarketDataRecord } from './lib/api'
+import { fetchAllMarketData, generatePdfReportRequest, type MarketDataRecord } from './lib/api'
 import { formatMarketSize, formatPercent } from './lib/format'
 
 type StatusState = {
@@ -75,8 +76,11 @@ export function App(): JSX.Element {
   const [loading, setLoading] = useState(true)
   const [aiLoading, setAiLoading] = useState(false)
   const [syncLoading, setSyncLoading] = useState(false)
+  const [pdfLoading, setPdfLoading] = useState(false)
   const [status, setStatus] = useState<StatusState>(null)
   const [refreshToken, setRefreshToken] = useState(0)
+
+  const chartRef = useRef<ChartJSOrUndefined<'bubble'>>(null)
 
   const [selectedSegment, setSelectedSegment] = useState<string>('ALL')
   const [issueKeyword, setIssueKeyword] = useState<string>('')
@@ -206,7 +210,9 @@ export function App(): JSX.Element {
         })
       })
 
-      const json = await response.json().catch(() => ({ status: 'error', message: 'Notion同期レスポンスの解析に失敗しました' }))
+      const json = await response
+        .json()
+        .catch(() => ({ status: 'error', message: 'Notion同期レスポンスの解析に失敗しました' }))
       if (!response.ok || json.status !== 'ok') {
         throw new Error(json.message ?? 'Notion同期に失敗しました')
       }
@@ -218,6 +224,36 @@ export function App(): JSX.Element {
       setStatus({ message, type: 'error' })
     } finally {
       setSyncLoading(false)
+    }
+  }
+
+  const handleDownloadPdf = async () => {
+    if (!selectedRecord) {
+      setStatus({ message: 'PDF化する市場データが選択されていません', type: 'error' })
+      return
+    }
+
+    setPdfLoading(true)
+    try {
+      const chartImageData = chartRef.current?.toBase64Image?.('image/png', 1)
+      const blob = await generatePdfReportRequest({
+        id: selectedRecord.id,
+        chartImageData: chartImageData ?? null
+      })
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = `${selectedRecord.segment.replace(/[^a-zA-Z0-9\-_.]/g, '_')}_${selectedRecord.year}.pdf`
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+      URL.revokeObjectURL(url)
+      setStatus({ message: 'PDFレポートを生成しました', type: 'success' })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'PDFレポート生成に失敗しました'
+      setStatus({ message, type: 'error' })
+    } finally {
+      setPdfLoading(false)
     }
   }
 
@@ -275,6 +311,7 @@ export function App(): JSX.Element {
           <section className="grid gap-6 lg:grid-cols-[1.75fr_1fr]">
             <div className="rounded-3xl border border-white/10 bg-black/40 p-6 shadow-soft backdrop-blur-xl">
               <MarketBubbleChart
+                ref={chartRef}
                 data={filteredRecords}
                 selectedId={selectedRecord?.id}
                 onSelect={setSelectedRecord}
@@ -300,7 +337,11 @@ export function App(): JSX.Element {
             </div>
           </section>
 
-          <DetailPanel record={selectedRecord} />
+          <DetailPanel
+            record={selectedRecord}
+            onDownloadPdf={handleDownloadPdf}
+            pdfLoading={pdfLoading}
+          />
         </main>
       </div>
 

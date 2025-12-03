@@ -5,6 +5,13 @@
   "pages_build_output_dir": "./dist",
   "compatibility_flags": [
     "nodejs_compat"
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "notion-market-intel",
+      "database_id": "00000000-0000-0000-0000-000000000000" // TODO: replace with production database id
+    }
   ]
   // "vars": {
   //   "MY_VAR": "my-variable"

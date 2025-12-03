@@ -1,7 +1,18 @@
 import { Hono } from 'hono'
 import { serveStatic } from 'hono/cloudflare-workers'
+import { createYoga } from 'graphql-yoga'
+import { schema } from './server/graphql/schema'
+import type { Bindings, GraphQLContext } from './server/types'
 
-const app = new Hono()
+const app = new Hono<{ Bindings: Bindings }>()
+
+const yoga = createYoga<{ Bindings: Bindings }>({
+  schema,
+  graphqlEndpoint: '/graphql',
+  context: ({ env }): GraphQLContext => ({
+    db: env.DB
+  })
+})
 
 const HTML_TEMPLATE = `<!DOCTYPE html>
 <html lang="ja" class="bg-base-100">
@@ -26,6 +37,16 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
 
 app.use('/static/*', serveStatic({ root: './' }))
 app.use('/favicon.ico', serveStatic({ path: './public/favicon.ico' }))
+
+app.get('/healthz', (c) =>
+  c.json({
+    status: 'ok',
+    graphql: '/graphql',
+    timestamp: new Date().toISOString()
+  })
+)
+
+app.all('/graphql', (c) => yoga.handleRequest(c.req.raw, { env: c.env }))
 
 app.get('/', (c) => c.html(HTML_TEMPLATE))
 

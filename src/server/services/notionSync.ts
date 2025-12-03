@@ -1,10 +1,10 @@
-import type { Bindings, MarketDataInput, MarketDataSubpage } from '../types'
+import type { Bindings, MarketDataInput, MarketDataSubpage, MarketDataRecord } from '../types'
 import { upsertMarketData } from '../db/marketData'
 
 const NOTION_API_BASE = 'https://api.notion.com/v1'
 const NOTION_VERSION = '2022-06-28'
 
-const YEAR_PROPERTY_MAP: Record<number, string> = {
+export const NOTION_YEAR_PROPERTY_MAP: Record<number, string> = {
   2025: '2025年市場規模',
   2030: '2030年市場規模'
 }
@@ -166,7 +166,7 @@ const renderBlocksToMarkdown = (blocks: any[]): string => {
     .trim()
 }
 
-async function notionFetch(env: Bindings, path: string, init: RequestInit = {}): Promise<any> {
+export async function notionFetch(env: Bindings, path: string, init: RequestInit = {}): Promise<any> {
   if (!env.NOTION_API_KEY) {
     throw new Error('Notion API key is not configured')
   }
@@ -188,7 +188,7 @@ async function notionFetch(env: Bindings, path: string, init: RequestInit = {}):
   return response.json()
 }
 
-async function fetchDatabasePages(
+export async function fetchDatabasePages(
   env: Bindings,
   databaseId: string,
   segment?: string
@@ -233,7 +233,9 @@ async function fetchAllBlockChildren(env: Bindings, blockId: string): Promise<an
   do {
     const data = await notionFetch(
       env,
-      `/blocks/${blockId}/children?page_size=50${cursor ? `&start_cursor=${encodeURIComponent(cursor)}` : ''}`
+      `/blocks/${blockId}/children?page_size=50${
+        cursor ? `&start_cursor=${encodeURIComponent(cursor)}` : ''
+      }`
     )
     all.push(...(data.results ?? []))
     cursor = data.has_more ? data.next_cursor : undefined
@@ -305,7 +307,7 @@ const mapPageToMarketDataInputs = async (
 
   const inputs: MarketDataInput[] = []
 
-  for (const [year, propertyName] of Object.entries(YEAR_PROPERTY_MAP)) {
+  for (const [year, propertyName] of Object.entries(NOTION_YEAR_PROPERTY_MAP)) {
     const numericYear = Number(year)
     const marketSize = parseNumberProperty(properties[propertyName])
     if (marketSize === null) {
@@ -333,12 +335,12 @@ const mapPageToMarketDataInputs = async (
   }
 
   if (inputs.length === 0) {
-    const fallbackYear = Number(Object.keys(YEAR_PROPERTY_MAP)[0])
+    const fallbackYear = Number(Object.keys(NOTION_YEAR_PROPERTY_MAP)[0])
     inputs.push({
       segment,
       issue,
       year: fallbackYear,
-      marketSize: parseNumberProperty(properties[YEAR_PROPERTY_MAP[fallbackYear]]) ?? null,
+      marketSize: parseNumberProperty(properties[NOTION_YEAR_PROPERTY_MAP[fallbackYear]]) ?? null,
       growthRate,
       top10Ratio,
       players,
@@ -398,5 +400,209 @@ export const syncNotionMarketData = async (
     upserted,
     skipped,
     errors
+  }
+}
+
+export type NotionResearchSource = {
+  title: string
+  url: string
+  snippet?: string
+}
+
+export type NotionPushContext = {
+  summary?: string | null
+  sources?: NotionResearchSource[]
+  insights?: string[]
+  timestamp?: string
+}
+
+export const findNotionPageBySegment = async (
+  env: Bindings,
+  segment: string
+): Promise<any | null> => {
+  if (!env.NOTION_DATABASE_ID) return null
+  const pages = await fetchDatabasePages(env, env.NOTION_DATABASE_ID, segment)
+  return pages.length > 0 ? pages[0] : null
+}
+
+export const pushResearchResultToNotion = async (
+  env: Bindings,
+  record: MarketDataRecord,
+  context: NotionPushContext = {}
+): Promise<void> => {
+  if (!env.NOTION_API_KEY || !record.notionPageId) {
+    return
+  }
+
+  const propertiesPayload: Record<string, unknown> = {}
+
+  const yearPropertyName = NOTION_YEAR_PROPERTY_MAP[record.year]
+  if (yearPropertyName && typeof record.marketSize === 'number') {
+    propertiesPayload[yearPropertyName] = {
+      number: record.marketSize
+    }
+  }
+
+  if (typeof record.growthRate === 'number') {
+    propertiesPayload['市場成長率'] = {
+      number: record.growthRate
+    }
+  }
+
+  if (typeof record.top10Ratio === 'number') {
+    propertiesPayload['上位10社比率'] = {
+      number: record.top10Ratio
+    }
+  }
+
+  if (record.issue) {
+    propertiesPayload['課題'] = {
+      rich_text: [
+        {
+          type: 'text',
+          text: { content: record.issue }
+        }
+      ]
+    }
+  }
+
+  if (record.players.length > 0) {
+    propertiesPayload['主要プレイヤー'] = {
+      multi_select: record.players.map((name) => ({ name }))
+    }
+  }
+
+  if (record.links.length > 0) {
+    const richTexts = record.links.map((url, index) => ({
+      type: 'text',
+      text: {
+        content: index === record.links.length - 1 ? url : `${url}\n`,
+        link: { url }
+      }
+    }))
+    propertiesPayload['リンク'] = {
+      rich_text: richTexts
+    }
+  }
+
+  const summaryText = context.summary ?? record.summary
+  if (summaryText) {
+    propertiesPayload['備考'] = {
+      rich_text: [
+        {
+          type: 'text',
+          text: { content: summaryText }
+        }
+      ]
+    }
+  }
+
+  if (Object.keys(propertiesPayload).length > 0) {
+    await notionFetch(env, `/pages/${record.notionPageId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ properties: propertiesPayload })
+    })
+  }
+
+  const summaryBlocks: any[] = []
+  const insights = context.insights ?? []
+  const timestamp = context.timestamp ?? new Date().toISOString()
+
+  if (summaryText) {
+    summaryBlocks.push({
+      object: 'block',
+      type: 'paragraph',
+      paragraph: {
+        rich_text: [
+          {
+            type: 'text',
+            text: { content: summaryText }
+          }
+        ]
+      }
+    })
+  }
+
+  if (insights.length > 0) {
+    for (const insight of insights) {
+      summaryBlocks.push({
+        object: 'block',
+        type: 'bulleted_list_item',
+        bulleted_list_item: {
+          rich_text: [
+            {
+              type: 'text',
+              text: { content: insight }
+            }
+          ]
+        }
+      })
+    }
+  }
+
+  if (context.sources && context.sources.length > 0) {
+    summaryBlocks.push({
+      object: 'block',
+      type: 'heading_3',
+      heading_3: {
+        rich_text: [
+          {
+            type: 'text',
+            text: { content: '参考情報' }
+          }
+        ]
+      }
+    })
+
+    for (const source of context.sources) {
+      const contentParts: string[] = []
+      if (source.title) {
+        contentParts.push(source.title)
+      }
+      if (source.url) {
+        contentParts.push(source.url)
+      }
+      if (source.snippet) {
+        contentParts.push(source.snippet)
+      }
+
+      summaryBlocks.push({
+        object: 'block',
+        type: 'bulleted_list_item',
+        bulleted_list_item: {
+          rich_text: [
+            {
+              type: 'text',
+              text: {
+                content: contentParts.join(' \n'),
+                link: source.url ? { url: source.url } : undefined
+              }
+            }
+          ]
+        }
+      })
+    }
+  }
+
+  if (summaryBlocks.length > 0) {
+    const pageTitle = `${record.year} 市場AIアップデート (${timestamp.slice(0, 10)})`
+
+    await notionFetch(env, '/pages', {
+      method: 'POST',
+      body: JSON.stringify({
+        parent: { page_id: record.notionPageId },
+        properties: {
+          title: {
+            title: [
+              {
+                type: 'text',
+                text: { content: pageTitle }
+              }
+            ]
+          }
+        },
+        children: summaryBlocks
+      })
+    })
   }
 }

@@ -2,6 +2,8 @@ export type Bindings = {
   DB: D1Database
   NOTION_API_KEY?: string
   NOTION_DATABASE_ID?: string
+  OPENAI_API_KEY?: string
+  SERPAPI_KEY?: string
 }
 
 export type MarketDataSubpage = {

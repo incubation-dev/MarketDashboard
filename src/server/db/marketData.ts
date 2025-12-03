@@ -152,6 +152,28 @@ const normaliseIssue = (issue: string | null | undefined): string => {
   return issue.trim()
 }
 
+export const findMarketDataByCompositeKey = async (
+  db: D1Database,
+  segment: string,
+  issue: string | null | undefined,
+  year: number
+): Promise<MarketDataRecord | null> => {
+  const normalisedSegment = segment.trim()
+  const normalisedIssue = normaliseIssue(issue ?? null)
+
+  const statement =
+    normalisedIssue.length === 0
+      ? db
+          .prepare(`${SELECT_BASE} WHERE segment = ? AND (issue IS NULL OR issue = '') AND year = ? LIMIT 1`)
+          .bind(normalisedSegment, year)
+      : db
+          .prepare(`${SELECT_BASE} WHERE segment = ? AND issue = ? AND year = ? LIMIT 1`)
+          .bind(normalisedSegment, normalisedIssue, year)
+
+  const row = await statement.first<DbMarketDataRow>()
+  return row ? toRecord(row) : null
+}
+
 const serialiseArray = (items: string[] | null | undefined): string | null => {
   if (!items || items.length === 0) return null
   return JSON.stringify(items)

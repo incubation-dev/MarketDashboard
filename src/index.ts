@@ -2,8 +2,10 @@ import { Hono } from 'hono'
 import { serveStatic } from 'hono/cloudflare-workers'
 import { createYoga } from 'graphql-yoga'
 import type { ExportedHandlerScheduledHandler } from '@cloudflare/workers-types'
+import { z } from 'zod'
 import { schema } from './server/graphql/schema'
 import { syncNotionMarketData } from './server/services/notionSync'
+import { runMarketResearchAndPersist } from './server/services/aiResearchAgent'
 import type { Bindings, GraphQLContext } from './server/types'
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -14,6 +16,12 @@ const yoga = createYoga<{ Bindings: Bindings }>({
   context: ({ env }): GraphQLContext => ({
     db: env.DB
   })
+})
+
+const researchRequestSchema = z.object({
+  segment: z.string().min(1, 'segment is required'),
+  issue: z.string().optional().nullable(),
+  year: z.coerce.number().int().min(2000).max(2100)
 })
 
 const HTML_TEMPLATE = `<!DOCTYPE html>
@@ -59,6 +67,31 @@ app.post('/api/sync', async (c) => {
     return c.json({ status: 'ok', requestedSegment: segment ?? null, result })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Notion同期でエラーが発生しました'
+    return c.json({ status: 'error', message }, 500)
+  }
+})
+
+app.post('/api/research', async (c) => {
+  const payload = await c.req.json().catch(() => ({}))
+
+  try {
+    const input = researchRequestSchema.parse(payload)
+    const outcome = await runMarketResearchAndPersist(c.env, {
+      segment: input.segment,
+      issue: input.issue ?? null,
+      year: input.year
+    })
+
+    return c.json({
+      status: 'ok',
+      model: outcome.model,
+      record: outcome.record,
+      sources: outcome.sources,
+      insights: outcome.insights
+    })
+  } catch (error) {
+    console.error('[api/research] failed', error)
+    const message = error instanceof Error ? error.message : 'AIリサーチに失敗しました'
     return c.json({ status: 'error', message }, 500)
   }
 })

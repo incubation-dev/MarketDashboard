@@ -75,10 +75,17 @@ app.post('/api/sync', async (c) => {
 
   try {
     const result = await syncNotionMarketData(c.env, { segment })
-    return c.json({ status: 'ok', requestedSegment: segment ?? null, result })
+    // Include debug info in response for testing
+    const debugInfo = {
+      hasNotionApiKey: !!c.env.NOTION_API_KEY,
+      hasNotionDatabaseId: !!c.env.NOTION_DATABASE_ID,
+      requestedSegment: segment ?? null
+    }
+    return c.json({ status: 'ok', debug: debugInfo, result })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Notion同期でエラーが発生しました'
-    return c.json({ status: 'error', message }, 500)
+    const stack = error instanceof Error ? error.stack : undefined
+    return c.json({ status: 'error', message, stack }, 500)
   }
 })
 

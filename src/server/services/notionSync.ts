@@ -249,9 +249,9 @@ async function collectSubpages(
   pageId: string,
   parentPath: string,
   depth: number = 0,
-  maxDepth: number = 2
+  maxDepth: number = 1
 ): Promise<MarketDataSubpage[]> {
-  // Limit recursion depth to avoid "too many subrequests" error
+  // Limit recursion depth to 1 (only direct children) to avoid "too many subrequests" error
   if (depth >= maxDepth) {
     return []
   }
@@ -259,7 +259,7 @@ async function collectSubpages(
   let children: any[] = []
   try {
     children = await fetchAllBlockChildren(env, pageId)
-    console.log(`[collectSubpages] Found ${children.length} blocks for page ${pageId}`)
+    console.log(`[collectSubpages] Found ${children.length} blocks for page ${pageId}, depth=${depth}`)
   } catch (error) {
     console.error(`Failed to fetch children for page ${pageId}:`, error)
     return []
@@ -267,19 +267,19 @@ async function collectSubpages(
 
   const subpages: MarketDataSubpage[] = []
   const childPageBlocks = children.filter((b) => b.type === 'child_page')
-  console.log(`[collectSubpages] Found ${childPageBlocks.length} child_page blocks`)
+  console.log(`[collectSubpages] Found ${childPageBlocks.length} child_page blocks at depth ${depth}`)
 
-  for (const block of children) {
-    if (block.type !== 'child_page') continue
+  // Only process direct child pages (depth 0), don't recurse deeper
+  for (const block of childPageBlocks) {
     const childId: string = block.id
     const title: string = block.child_page?.title ?? 'Untitled'
     
-    let nestedBlocks: any[] = []
     let markdown = ''
     
     try {
-      nestedBlocks = await fetchAllBlockChildren(env, childId)
+      const nestedBlocks = await fetchAllBlockChildren(env, childId)
       markdown = renderBlocksToMarkdown(nestedBlocks)
+      console.log(`[collectSubpages] Collected ${markdown.length} chars for subpage: ${title}`)
     } catch (error) {
       console.error(`Failed to fetch blocks for subpage ${childId}:`, error)
       markdown = `[Error loading content for: ${title}]`
@@ -293,14 +293,6 @@ async function collectSubpages(
       path: currentPath,
       markdown
     })
-
-    // Recursively collect nested subpages with depth tracking
-    try {
-      const nestedSubpages = await collectSubpages(env, childId, currentPath, depth + 1, maxDepth)
-      subpages.push(...nestedSubpages)
-    } catch (error) {
-      console.error(`Failed to collect nested subpages for ${childId}:`, error)
-    }
   }
 
   return subpages
@@ -332,12 +324,17 @@ const mapPageToMarketDataInputs = async (
   const notionPageId = page.id
   const parentId = page.parent?.database_id ?? null
   
+  console.log(`[notionSync] Processing page: ${segment} (ID: ${notionPageId})`)
+  
   let subpages: MarketDataSubpage[] = []
   try {
     subpages = await collectSubpages(env, notionPageId, segment)
     console.log(`[notionSync] Collected ${subpages.length} subpages for segment: ${segment}`)
     if (subpages.length > 0) {
-      console.log(`[notionSync] First subpage: ${subpages[0].title} (${subpages[0].id})`)
+      console.log(`[notionSync] Subpage titles: ${subpages.map((s) => s.title).join(', ')}`)
+      console.log(`[notionSync] First subpage markdown length: ${subpages[0].markdown.length} chars`)
+    } else {
+      console.log(`[notionSync] No subpages found for ${segment}`)
     }
   } catch (error) {
     console.error(`Failed to collect subpages for ${notionPageId}:`, error)
@@ -416,6 +413,10 @@ export type NotionSyncResult = {
   upserted: number
   skipped: number
   errors: string[]
+  subpageStats?: {
+    totalSubpagesCollected: number
+    pagesWithSubpages: number
+  }
 }
 
 export const syncNotionMarketData = async (
@@ -427,29 +428,50 @@ export const syncNotionMarketData = async (
   }
 
   const pages = await fetchDatabasePages(env, env.NOTION_DATABASE_ID, options.segment)
+  console.log(`[syncNotionMarketData] Starting sync for ${pages.length} pages`)
+  
   let upserted = 0
   let skipped = 0
   const errors: string[] = []
+  let totalSubpagesCollected = 0
+  let pagesWithSubpages = 0
 
-  for (const page of pages) {
-    try {
-      const inputs = await mapPageToMarketDataInputs(env, page)
-      for (const input of inputs) {
-        await upsertMarketData(env.DB, input)
-        upserted += 1
+  // Process in smaller batches to avoid timeout
+  const batchSize = 10
+  for (let i = 0; i < pages.length; i += batchSize) {
+    const batch = pages.slice(i, i + batchSize)
+    console.log(`[syncNotionMarketData] Processing batch ${Math.floor(i / batchSize) + 1} (${batch.length} pages)`)
+    
+    for (const page of batch) {
+      try {
+        const inputs = await mapPageToMarketDataInputs(env, page)
+        for (const input of inputs) {
+          if (input.subpages && input.subpages.length > 0) {
+            totalSubpagesCollected += input.subpages.length
+            pagesWithSubpages += 1
+          }
+          await upsertMarketData(env.DB, input)
+          upserted += 1
+        }
+      } catch (error) {
+        skipped += 1
+        const message = error instanceof Error ? error.message : 'unknown error'
+        errors.push(`[${page.id}] ${message}`)
+        console.error(`[syncNotionMarketData] Error processing page:`, message)
       }
-    } catch (error) {
-      skipped += 1
-      const message = error instanceof Error ? error.message : 'unknown error'
-      errors.push(`[${page.id}] ${message}`)
     }
   }
 
+  console.log(`[syncNotionMarketData] Completed: ${upserted} upserted, ${skipped} skipped, ${totalSubpagesCollected} subpages from ${pagesWithSubpages} pages`)
   return {
     processed: pages.length,
     upserted,
     skipped,
-    errors
+    errors,
+    subpageStats: {
+      totalSubpagesCollected,
+      pagesWithSubpages
+    }
   }
 }
 

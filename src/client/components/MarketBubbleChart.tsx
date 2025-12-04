@@ -30,8 +30,12 @@ const fallbackValue = (value: number | null | undefined, defaultValue: number) =
 export const MarketBubbleChart = forwardRef<ChartJSOrUndefined<'bubble'>, MarketBubbleChartProps>(
   ({ data, selectedId, onSelect, theme = 'dark' }, ref) => {
     const isDark = theme === 'dark'
+  
+  console.log('[MarketBubbleChart] Received data:', data.length, 'records')
+  
   const chartData = useMemo(() => {
     if (data.length === 0) {
+      console.log('[MarketBubbleChart] No data to display')
       return {
         datasets: []
       }
@@ -46,18 +50,28 @@ export const MarketBubbleChart = forwardRef<ChartJSOrUndefined<'bubble'>, Market
 
     const scaleFactor = maxMarketSize > 0 ? 60 / Math.sqrt(maxMarketSize) : 6
 
+    console.log('[MarketBubbleChart] Creating datasets for', data.length, 'records. ScaleFactor:', scaleFactor)
+
     return {
       datasets: data.map((record, index) => {
         const background = bubblePalette[index % bubblePalette.length]
         const border = background
         const isSelected = record.id === selectedId
+        const x = fallbackValue(record.top10Ratio, 40)
+        const y = fallbackValue(record.growthRate, 5)
+        const r = Math.max(Math.sqrt(fallbackValue(record.marketSize, 50)) * scaleFactor, 8)
+        
+        if (index < 3) {
+          console.log(`[MarketBubbleChart] Record ${index}:`, record.segment, '- x:', x, 'y:', y, 'r:', r)
+        }
+        
         return {
           label: `${record.segment} (${record.year})`,
           data: [
             {
-              x: fallbackValue(record.top10Ratio, 40),
-              y: fallbackValue(record.growthRate, 5),
-              r: Math.max(Math.sqrt(fallbackValue(record.marketSize, 50)) * scaleFactor, 8)
+              x,
+              y,
+              r
             }
           ],
           borderColor: border,
@@ -148,7 +162,9 @@ export const MarketBubbleChart = forwardRef<ChartJSOrUndefined<'bubble'>, Market
               },
               grid: {
                 color: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'
-              }
+              },
+              min: -10,
+              max: 30
             }
           },
           onClick: (_event, elements) => {

@@ -185,7 +185,7 @@ const callOpenAI = async (env: Bindings, context: OpenAIContext) => {
     body: JSON.stringify({
       model: OPENAI_MODEL,
       temperature: 0.2,
-      max_tokens: 1500,
+      max_completion_tokens: 1500,
       response_format: {
         type: 'json_schema',
         json_schema: {

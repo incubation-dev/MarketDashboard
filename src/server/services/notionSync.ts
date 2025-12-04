@@ -5,8 +5,8 @@ const NOTION_API_BASE = 'https://api.notion.com/v1'
 const NOTION_VERSION = '2022-06-28'
 
 export const NOTION_YEAR_PROPERTY_MAP: Record<number, string> = {
-  2025: '2025年市場規模',
-  2030: '2030年市場規模'
+  2025: '2025年',
+  2030: '2030年'
 }
 
 const optionalString = (value: unknown): string | null => {
@@ -309,6 +309,9 @@ const mapPageToMarketDataInputs = async (
 ): Promise<MarketDataInput[]> => {
   const properties = page.properties ?? {}
 
+  // Debug: Log all property names
+  console.log('[notionSync] Available properties:', Object.keys(properties).join(', '))
+
   const segment = parseRichTextProperty(properties['市場セグメント'])
   if (!segment) {
     throw new Error('Notionページに市場セグメントのタイトルが存在しません')
@@ -346,7 +349,10 @@ const mapPageToMarketDataInputs = async (
 
   for (const [year, propertyName] of Object.entries(NOTION_YEAR_PROPERTY_MAP)) {
     const numericYear = Number(year)
-    const marketSize = parseNumberProperty(properties[propertyName])
+    const property = properties[propertyName]
+    console.log(`[notionSync] Segment: ${segment}, Year: ${year}, PropertyName: ${propertyName}, PropertyType: ${property?.type}, PropertyValue:`, JSON.stringify(property))
+    const marketSize = parseNumberProperty(property)
+    console.log(`[notionSync] Parsed marketSize for ${segment} (${year}): ${marketSize}`)
     if (marketSize === null) {
       continue
     }

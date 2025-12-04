@@ -345,7 +345,7 @@ export function App(): JSX.Element {
             theme={theme}
           />
 
-          <section className="grid gap-6 lg:grid-cols-[1.75fr_1fr]">
+          <section className="grid gap-6 lg:grid-cols-[2fr_1fr]">
             <div className={`rounded-3xl border p-6 shadow-soft backdrop-blur-xl ${
               theme === 'dark' ? 'border-white/10 bg-black/40' : 'border-slate-200 bg-white/80'
             }`}>

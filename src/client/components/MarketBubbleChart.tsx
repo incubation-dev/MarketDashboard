@@ -79,10 +79,14 @@ export const MarketBubbleChart = forwardRef<ChartJSOrUndefined<'bubble'>, Market
   }
 
   return (
-    <div className="flex h-[420px] flex-col gap-4" data-animate>
+    <div className="flex min-h-[600px] flex-col gap-4" data-animate>
       <div>
-        <h2 className="text-lg font-semibold text-white">市場ポートフォリオ</h2>
-        <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
+        <h2 className={`text-lg font-semibold ${
+          isDark ? 'text-white' : 'text-slate-900'
+        }`}>市場ポートフォリオ</h2>
+        <p className={`text-xs uppercase tracking-[0.2em] ${
+          isDark ? 'text-slate-400' : 'text-slate-600'
+        }`}>
           X: 市場占有率（推定） / Y: 成長率 / サイズ: 市場規模
         </p>
       </div>

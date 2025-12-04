@@ -112,7 +112,7 @@ export const MarketBubbleChart = forwardRef<ChartJSOrUndefined<'bubble'>, Market
   }
 
   return (
-    <div className="flex h-[500px] flex-col gap-4" data-animate>
+    <div className="flex h-full flex-col gap-4" data-animate>
       <div>
         <h2 className={`text-lg font-semibold ${
           isDark ? 'text-white' : 'text-slate-900'
@@ -178,7 +178,8 @@ export const MarketBubbleChart = forwardRef<ChartJSOrUndefined<'bubble'>, Market
               min: 0,
               max: (() => {
                 const maxX = data.reduce((max, r) => Math.max(max, r.top10Ratio ?? 0), 0)
-                return Math.min(Math.max(maxX * 1.2, 50), 100)
+                const calculatedMax = Math.ceil(maxX * 1.2)
+                return Math.max(calculatedMax, 100)
               })()
             },
             y: {
@@ -195,11 +196,13 @@ export const MarketBubbleChart = forwardRef<ChartJSOrUndefined<'bubble'>, Market
               },
               min: (() => {
                 const minY = data.reduce((min, r) => Math.min(min, r.growthRate ?? 0), 0)
-                return Math.floor(Math.min(minY * 1.2, -5))
+                const calculatedMin = minY < 0 ? Math.floor(minY * 1.3) : Math.floor(minY * 0.8)
+                return Math.min(calculatedMin, -5)
               })(),
               max: (() => {
                 const maxY = data.reduce((max, r) => Math.max(max, r.growthRate ?? 0), 0)
-                return Math.ceil(Math.max(maxY * 1.2, 20))
+                const calculatedMax = Math.ceil(maxY * 1.3)
+                return Math.max(calculatedMax, 70)
               })()
             }
           },

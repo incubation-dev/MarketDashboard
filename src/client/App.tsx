@@ -400,19 +400,19 @@ export function App(): JSX.Element {
                 }`}>{metric.value}</p>
               </div>
             ))}
-            {/* Main Players - Compact */}
-            <div className={`rounded-3xl border px-5 py-4 text-sm ${
+            {/* Main Players */}
+            <div className={`rounded-3xl border px-6 py-5 ${
               theme === 'dark'
                 ? 'border-white/10 bg-white/5 text-slate-200'
                 : 'border-slate-200 bg-slate-50 text-slate-800'
             }`}>
-              <p className={`text-xs uppercase tracking-[0.3em] ${
-                theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
+              <p className={`text-sm uppercase tracking-[0.3em] font-semibold mb-3 ${
+                theme === 'dark' ? 'text-slate-300' : 'text-slate-700'
               }`}>主要プレイヤー</p>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {aggregatedPlayers.slice(0, 8).map((p, i) => (
-                  <span key={i} className={`text-sm px-3 py-1.5 rounded-full font-medium ${
-                    theme === 'dark' ? 'bg-brand/20 text-brand-light' : 'bg-brand/10 text-brand'
+              <div className="flex flex-wrap gap-2">
+                {aggregatedPlayers.slice(0, 10).map((p, i) => (
+                  <span key={i} className={`text-base px-4 py-2 rounded-full font-semibold shadow-sm ${
+                    theme === 'dark' ? 'bg-brand/30 text-white' : 'bg-brand/20 text-brand'
                   }`}>
                     {p.name}
                   </span>

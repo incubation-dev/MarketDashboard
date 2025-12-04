@@ -280,16 +280,16 @@ export function App(): JSX.Element {
     <div className={`min-h-screen transition-colors duration-300 ${
       theme === 'dark'
         ? 'bg-gradient-to-br from-black via-neutral-950 to-slate-900 text-white'
-        : 'bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-900'
+        : 'bg-gradient-to-br from-white via-slate-50 to-gray-100 text-slate-900'
     }`}>
       <div className="relative isolate overflow-hidden">
         <div className={`pointer-events-none absolute inset-0 -z-10 ${
           theme === 'dark'
             ? 'bg-[radial-gradient(circle_at_top_left,#aa000033,transparent_55%),radial-gradient(circle_at_bottom_right,#1d4ed833,transparent_55%)]'
-            : 'bg-[radial-gradient(circle_at_top_left,#aa000011,transparent_55%),radial-gradient(circle_at_bottom_right,#1d4ed811,transparent_55%)]'
+            : 'bg-[radial-gradient(circle_at_top_left,#aa000022,transparent_65%),radial-gradient(circle_at_bottom_right,#1d4ed822,transparent_65%)]'
         }`} />
 
-        <header className="mx-auto max-w-7xl px-6 pt-16 pb-10" data-animate>
+        <header className="w-full px-8 pt-16 pb-10" data-animate>
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <span className="badge badge-outline border-brand/50 bg-brand/10 text-xs uppercase tracking-[0.4em] text-brand">
@@ -328,7 +328,7 @@ export function App(): JSX.Element {
           </div>
         </header>
 
-        <main className="mx-auto max-w-7xl space-y-8 px-6 pb-24">
+        <main className="w-full space-y-8 px-8 pb-24">
           <FilterBar
             segments={segments}
             selectedSegment={selectedSegment}
@@ -342,15 +342,19 @@ export function App(): JSX.Element {
             researchLoading={aiLoading}
             onSync={handleSync}
             syncLoading={syncLoading}
+            theme={theme}
           />
 
           <section className="grid gap-6 lg:grid-cols-[1.75fr_1fr]">
-            <div className="rounded-3xl border border-white/10 bg-black/40 p-6 shadow-soft backdrop-blur-xl">
+            <div className={`rounded-3xl border p-6 shadow-soft backdrop-blur-xl ${
+              theme === 'dark' ? 'border-white/10 bg-black/40' : 'border-slate-200 bg-white/80'
+            }`}>
               <MarketBubbleChart
                 ref={chartRef}
                 data={filteredRecords}
                 selectedId={selectedRecord?.id}
                 onSelect={setSelectedRecord}
+                theme={theme}
               />
             </div>
             <div className="space-y-6">
@@ -358,10 +362,18 @@ export function App(): JSX.Element {
                 {metricCards.map((metric) => (
                   <div
                     key={metric.label}
-                    className="rounded-3xl border border-white/10 bg-white/5 px-5 py-4 text-sm text-slate-200"
+                    className={`rounded-3xl border px-5 py-4 text-sm ${
+                      theme === 'dark'
+                        ? 'border-white/10 bg-white/5 text-slate-200'
+                        : 'border-slate-200 bg-slate-50 text-slate-800'
+                    }`}
                   >
-                    <p className="text-xs uppercase tracking-[0.3em] text-slate-400">{metric.label}</p>
-                    <p className="mt-2 text-lg font-semibold text-white">{metric.value}</p>
+                    <p className={`text-xs uppercase tracking-[0.3em] ${
+                      theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
+                    }`}>{metric.label}</p>
+                    <p className={`mt-2 text-lg font-semibold ${
+                      theme === 'dark' ? 'text-white' : 'text-slate-900'
+                    }`}>{metric.value}</p>
                   </div>
                 ))}
               </div>
@@ -369,6 +381,7 @@ export function App(): JSX.Element {
                 title="主要プレイヤー"
                 subtitle="頻出企業"
                 players={aggregatedPlayers}
+                theme={theme}
               />
             </div>
           </section>
@@ -377,6 +390,7 @@ export function App(): JSX.Element {
             record={selectedRecord}
             onDownloadPdf={handleDownloadPdf}
             pdfLoading={pdfLoading}
+            theme={theme}
           />
         </main>
       </div>

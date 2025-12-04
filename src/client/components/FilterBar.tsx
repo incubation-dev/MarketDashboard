@@ -11,6 +11,7 @@ type FilterBarProps = {
   researchLoading: boolean
   onSync: () => void
   syncLoading: boolean
+  theme?: 'light' | 'dark'
 }
 
 const yearOptionLabel = (year: number) => `${year}年`
@@ -27,17 +28,28 @@ export function FilterBar({
   onRunResearch,
   researchLoading,
   onSync,
-  syncLoading
+  syncLoading,
+  theme = 'dark'
 }: FilterBarProps): JSX.Element {
+  const isDark = theme === 'dark'
+  
   return (
-    <div className="grid gap-4 rounded-3xl border border-white/10 bg-black/40 p-6 shadow-soft backdrop-blur-xl" data-animate>
+    <div className={`grid gap-4 rounded-3xl border p-6 shadow-soft backdrop-blur-xl ${
+      isDark
+        ? 'border-white/10 bg-black/40'
+        : 'border-slate-200 bg-white/80'
+    }`} data-animate>
       <div className="grid gap-3 md:grid-cols-3">
         <label className="form-control w-full">
           <div className="label">
-            <span className="label-text text-xs uppercase tracking-[0.3em] text-slate-300">Segment</span>
+            <span className={`label-text text-xs uppercase tracking-[0.3em] ${
+              isDark ? 'text-slate-300' : 'text-slate-600'
+            }`}>Segment</span>
           </div>
           <select
-            className="select select-bordered select-primary w-full bg-black/60 text-slate-100"
+            className={`select select-bordered select-primary w-full ${
+              isDark ? 'bg-black/60 text-slate-100' : 'bg-white text-slate-900 border-slate-300'
+            }`}
             value={selectedSegment}
             onChange={(event) => onSegmentChange(event.target.value)}
           >
@@ -52,10 +64,16 @@ export function FilterBar({
 
         <label className="form-control w-full">
           <div className="label">
-            <span className="label-text text-xs uppercase tracking-[0.3em] text-slate-300">Issue</span>
+            <span className={`label-text text-xs uppercase tracking-[0.3em] ${
+              isDark ? 'text-slate-300' : 'text-slate-600'
+            }`}>Issue</span>
           </div>
           <input
-            className="input input-bordered w-full border-white/10 bg-black/60 text-slate-100 placeholder:text-slate-500"
+            className={`input input-bordered w-full ${
+              isDark
+                ? 'border-white/10 bg-black/60 text-slate-100 placeholder:text-slate-500'
+                : 'border-slate-300 bg-white text-slate-900 placeholder:text-slate-400'
+            }`}
             placeholder="例: レギュレーション、顧客不透明性など"
             value={issueKeyword}
             onChange={(event) => onIssueChange(event.target.value)}
@@ -64,10 +82,14 @@ export function FilterBar({
 
         <label className="form-control w-full">
           <div className="label">
-            <span className="label-text text-xs uppercase tracking-[0.3em] text-slate-300">Year</span>
+            <span className={`label-text text-xs uppercase tracking-[0.3em] ${
+              isDark ? 'text-slate-300' : 'text-slate-600'
+            }`}>Year</span>
           </div>
           <select
-            className="select select-bordered select-primary w-full bg-black/60 text-slate-100"
+            className={`select select-bordered select-primary w-full ${
+              isDark ? 'bg-black/60 text-slate-100' : 'bg-white text-slate-900 border-slate-300'
+            }`}
             value={selectedYear === 'ALL' ? 'ALL' : String(selectedYear)}
             onChange={(event) => {
               if (event.target.value === 'ALL') {
@@ -90,7 +112,9 @@ export function FilterBar({
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-end">
         <button
           type="button"
-          className="btn btn-ghost text-slate-300 hover:bg-white/10"
+          className={`btn btn-ghost ${
+            isDark ? 'text-slate-300 hover:bg-white/10' : 'text-slate-700 hover:bg-slate-100'
+          }`}
           onClick={onSync}
           disabled={syncLoading}
         >

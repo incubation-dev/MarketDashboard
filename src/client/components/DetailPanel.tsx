@@ -7,12 +7,19 @@ type DetailPanelProps = {
   record: MarketDataRecord | null
   onDownloadPdf: () => void
   pdfLoading: boolean
+  theme?: 'light' | 'dark'
 }
 
-export function DetailPanel({ record, onDownloadPdf, pdfLoading }: DetailPanelProps): JSX.Element {
+export function DetailPanel({ record, onDownloadPdf, pdfLoading, theme = 'dark' }: DetailPanelProps): JSX.Element {
+  const isDark = theme === 'dark'
+  
   if (!record) {
     return (
-      <div className="rounded-3xl border border-dashed border-white/10 bg-black/40 p-10 text-center text-slate-400" data-animate>
+      <div className={`rounded-3xl border border-dashed p-10 text-center ${
+        isDark
+          ? 'border-white/10 bg-black/40 text-slate-400'
+          : 'border-slate-300 bg-slate-50 text-slate-600'
+      }`} data-animate>
         対象データがまだ登録されていません。「AIで更新」を実行して最新動向を取得してください。
       </div>
     )
@@ -38,11 +45,15 @@ export function DetailPanel({ record, onDownloadPdf, pdfLoading }: DetailPanelPr
   ]
 
   return (
-    <div className="rounded-3xl border border-white/10 bg-black/50 p-8 shadow-soft backdrop-blur-xl" data-animate>
+    <div className={`rounded-3xl border p-8 shadow-soft backdrop-blur-xl ${
+      isDark ? 'border-white/10 bg-black/50' : 'border-slate-200 bg-white/80'
+    }`} data-animate>
       <header className="mb-6 flex flex-col gap-4">
         <div className="flex flex-wrap items-center gap-3">
           <span className="badge border-none bg-brand/20 text-brand">{record.year}年</span>
-          <h2 className="text-2xl font-semibold text-white">{record.segment}</h2>
+          <h2 className={`text-2xl font-semibold ${
+            isDark ? 'text-white' : 'text-slate-900'
+          }`}>{record.segment}</h2>
           <button
             type="button"
             className="btn btn-sm btn-primary ml-auto flex items-center gap-2 whitespace-nowrap text-xs"

@@ -19,6 +19,7 @@ type MarketBubbleChartProps = {
   data: MarketDataRecord[]
   selectedId?: number
   onSelect: (record: MarketDataRecord) => void
+  theme?: 'light' | 'dark'
 }
 
 const bubblePalette = ['#f87171', '#fb923c', '#facc15', '#38bdf8', '#34d399', '#a78bfa']
@@ -27,7 +28,8 @@ const fallbackValue = (value: number | null | undefined, defaultValue: number) =
   typeof value === 'number' && Number.isFinite(value) ? value : defaultValue
 
 export const MarketBubbleChart = forwardRef<ChartJSOrUndefined<'bubble'>, MarketBubbleChartProps>(
-  ({ data, selectedId, onSelect }, ref) => {
+  ({ data, selectedId, onSelect, theme = 'dark' }, ref) => {
+    const isDark = theme === 'dark'
   const chartData = useMemo(() => {
     if (data.length === 0) {
       return {
@@ -120,13 +122,13 @@ export const MarketBubbleChart = forwardRef<ChartJSOrUndefined<'bubble'>, Market
               title: {
                 display: true,
                 text: '市場占有率 (%)',
-                color: 'rgba(255,255,255,0.8)'
+                color: isDark ? 'rgba(255,255,255,0.8)' : 'rgba(15,23,42,0.8)'
               },
               ticks: {
-                color: 'rgba(255,255,255,0.6)'
+                color: isDark ? 'rgba(255,255,255,0.6)' : 'rgba(15,23,42,0.6)'
               },
               grid: {
-                color: 'rgba(255,255,255,0.08)'
+                color: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'
               },
               min: 0,
               max: 100
@@ -135,13 +137,13 @@ export const MarketBubbleChart = forwardRef<ChartJSOrUndefined<'bubble'>, Market
               title: {
                 display: true,
                 text: '成長率 (%)',
-                color: 'rgba(255,255,255,0.8)'
+                color: isDark ? 'rgba(255,255,255,0.8)' : 'rgba(15,23,42,0.8)'
               },
               ticks: {
-                color: 'rgba(255,255,255,0.6)'
+                color: isDark ? 'rgba(255,255,255,0.6)' : 'rgba(15,23,42,0.6)'
               },
               grid: {
-                color: 'rgba(255,255,255,0.08)'
+                color: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'
               }
             }
           },

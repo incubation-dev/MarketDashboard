@@ -18,6 +18,8 @@ type FilterBarProps = {
 
 const yearOptionLabel = (year: number) => `${year}年`
 
+import { useState } from 'react'
+
 export function FilterBar({
   segments,
   selectedSegments,
@@ -36,6 +38,7 @@ export function FilterBar({
   theme = 'dark'
 }: FilterBarProps): JSX.Element {
   const isDark = theme === 'dark'
+  const [dropdownOpen, setDropdownOpen] = useState(false)
   
   const handleSegmentToggle = (segment: string) => {
     if (selectedSegments.includes(segment)) {
@@ -60,23 +63,36 @@ export function FilterBar({
         : 'border-slate-200 bg-white/80'
     }`} data-animate>
       <div className="grid gap-3 md:grid-cols-3">
-        <div className="form-control w-full">
+        <div className="form-control w-full relative z-[100]">
           <div className="label">
             <span className={`label-text text-xs uppercase tracking-[0.3em] ${
               isDark ? 'text-slate-300' : 'text-slate-600'
             }`}>Segment ({selectedSegments.length}選択)</span>
           </div>
-          <details className={`dropdown w-full ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-            <summary className={`btn w-full justify-between ${
-              isDark ? 'bg-black/60 border-white/10' : 'bg-white border-slate-300'
-            }`}>
-              {selectedSegments.length === 0 ? '選択してください' : 
-               selectedSegments.length === segments.length ? '全セグメント' :
-               `${selectedSegments.length}件選択中`}
-            </summary>
-            <ul className={`dropdown-content menu z-[1000] w-full max-h-96 overflow-y-auto rounded-box shadow ${
-              isDark ? 'bg-slate-800 border border-white/10' : 'bg-white border border-slate-200'
-            }`}>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              className={`btn w-full justify-between ${
+                isDark ? 'bg-black/60 border-white/10' : 'bg-white border-slate-300'
+              }`}
+            >
+              <span>
+                {selectedSegments.length === 0 ? '選択してください' : 
+                 selectedSegments.length === segments.length ? '全セグメント' :
+                 `${selectedSegments.length}件選択中`}
+              </span>
+              <span className="material-symbols-rounded text-base">expand_more</span>
+            </button>
+            {dropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-[99]" 
+                  onClick={() => setDropdownOpen(false)}
+                />
+                <ul className={`absolute top-full left-0 mt-2 w-full max-h-96 overflow-y-auto rounded-box shadow-2xl z-[100] menu ${
+                  isDark ? 'bg-slate-800 border border-white/10' : 'bg-white border border-slate-200'
+                }`}>
               <li>
                 <label className="label cursor-pointer justify-start gap-2 p-3">
                   <input 
@@ -102,8 +118,10 @@ export function FilterBar({
                   </label>
                 </li>
               ))}
-            </ul>
-          </details>
+                </ul>
+              </>
+            )}
+          </div>
         </div>
 
         <label className="form-control w-full">

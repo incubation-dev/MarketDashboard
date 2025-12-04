@@ -61,6 +61,7 @@ export const MarketBubbleChart = forwardRef<ChartJSOrUndefined<'bubble'>, Market
     }
 
     console.log('[MarketBubbleChart] Creating datasets for', data.length, 'records. ScaleFactor:', scaleFactor)
+    console.log('[MarketBubbleChart] SegmentMap:', Array.from(segmentMap.keys()))
 
     let datasetIndex = 0
     const datasets = []
@@ -69,20 +70,26 @@ export const MarketBubbleChart = forwardRef<ChartJSOrUndefined<'bubble'>, Market
       const background = bubblePalette[datasetIndex % bubblePalette.length]
       const border = background
 
+      const dataPoints = records.map(record => {
+        const isSelected = record.id === selectedId
+        const x = fallbackValue(record.top10Ratio, 40)
+        const y = fallbackValue(record.growthRate, 5)
+        const r = Math.max(Math.sqrt(fallbackValue(record.marketSize, 100_000_000)) * scaleFactor, 12)
+        return {
+          x,
+          y,
+          r: isSelected ? r * 1.2 : r,
+          record
+        }
+      })
+
+      if (datasetIndex === 0) {
+        console.log(`[MarketBubbleChart] First dataset "${segment}": ${dataPoints.length} points`, dataPoints[0])
+      }
+
       datasets.push({
         label: segment,
-        data: records.map(record => {
-          const isSelected = record.id === selectedId
-          const x = fallbackValue(record.top10Ratio, 40)
-          const y = fallbackValue(record.growthRate, 5)
-          const r = Math.max(Math.sqrt(fallbackValue(record.marketSize, 50)) * scaleFactor, 8)
-          return {
-            x,
-            y,
-            r: isSelected ? r * 1.2 : r,
-            record
-          }
-        }),
+        data: dataPoints,
         borderColor: border,
         backgroundColor: `${background}1A`,
         borderWidth: 1.6,

@@ -34,6 +34,8 @@ export const MarketBubbleChart = forwardRef<ChartJSOrUndefined<'bubble'>, Market
   console.log('[MarketBubbleChart] Received data:', data.length, 'records')
   
   const chartData = useMemo(() => {
+    console.log('[MarketBubbleChart] chartData recalculating. data.length:', data.length, 'selectedId:', selectedId)
+    
     if (data.length === 0) {
       console.log('[MarketBubbleChart] No data to display')
       return {

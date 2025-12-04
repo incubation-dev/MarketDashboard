@@ -74,7 +74,7 @@ export function FilterBar({
                selectedSegments.length === segments.length ? '全セグメント' :
                `${selectedSegments.length}件選択中`}
             </summary>
-            <ul className={`dropdown-content menu z-[1] w-full max-h-96 overflow-y-auto rounded-box shadow ${
+            <ul className={`dropdown-content menu z-[1000] w-full max-h-96 overflow-y-auto rounded-box shadow ${
               isDark ? 'bg-slate-800 border border-white/10' : 'bg-white border border-slate-200'
             }`}>
               <li>

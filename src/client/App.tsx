@@ -6,7 +6,7 @@ import type { ChartJSOrUndefined } from 'react-chartjs-2'
 import { PlayerMetricCard } from './components/PlayerMetricCard'
 import { DetailPanel } from './components/DetailPanel'
 import { StatusToast } from './components/StatusToast'
-import { LoadingOverlay } from './components/LoadingOverlay'
+// LoadingOverlay removed - using inline loading indicators instead
 import { AiChatModal } from './components/AiChatModal'
 import { fetchAllMarketData, generatePdfReportRequest, type MarketDataRecord } from './lib/api'
 import { formatMarketSize, formatPercent } from './lib/format'
@@ -66,11 +66,7 @@ const collectTopPlayers = (records: MarketDataRecord[]): string[] => {
     .map(([player]) => player)
 }
 
-const deriveOverlayText = (state: { loading: boolean; ai: boolean; sync: boolean }): string => {
-  if (state.ai) return 'AIで市場データを更新しています...'
-  if (state.sync) return 'Notionとデータを同期しています...'
-  return '最新データを取得中...'
-}
+// deriveOverlayText removed - no longer using fullscreen overlay
 
 export function App(): JSX.Element {
   const [records, setRecords] = useState<MarketDataRecord[]>([])
@@ -86,7 +82,7 @@ export function App(): JSX.Element {
 
   const [selectedSegments, setSelectedSegments] = useState<string[]>([])
   const [issueKeyword, setIssueKeyword] = useState<string>('')
-  const [selectedYear, setSelectedYear] = useState<number | 'ALL'>('ALL')
+  const [selectedYear, setSelectedYear] = useState<number | 'ALL'>(2030)
   const [selectedRecord, setSelectedRecord] = useState<MarketDataRecord | null>(null)
   const [aiChatLoading, setAiChatLoading] = useState(false)
   const [chatModalOpen, setChatModalOpen] = useState(false)
@@ -164,6 +160,18 @@ export function App(): JSX.Element {
     if (filteredRecords.length === 0) return
     animate('[data-animate]', { opacity: [0, 1], y: [16, 0] }, { duration: 0.7, delay: stagger(0.05) })
   }, [filteredRecords])
+
+  // Animate chart and metrics when data or year changes (bounce effect)
+  useEffect(() => {
+    const chartSection = document.querySelector('[data-chart]')
+    const metricsSection = document.querySelector('[data-metrics]')
+    if (chartSection) {
+      animate(chartSection, { scale: [0.95, 1], opacity: [0.7, 1] }, { duration: 0.4, easing: 'ease-out' })
+    }
+    if (metricsSection) {
+      animate(metricsSection, { scale: [0.95, 1], opacity: [0.7, 1] }, { duration: 0.4, delay: 0.08, easing: 'ease-out' })
+    }
+  }, [filteredRecords, selectedYear])
 
   const aggregate = useMemo(() => computeAggregateMetrics(filteredRecords), [filteredRecords])
   const aggregatedPlayers = useMemo(() => collectTopPlayers(filteredRecords), [filteredRecords])
@@ -285,8 +293,7 @@ export function App(): JSX.Element {
     }
   }
 
-  const overlayActive = loading || aiLoading || syncLoading
-  const overlayText = deriveOverlayText({ loading, ai: aiLoading, sync: syncLoading })
+  // Removed fullscreen overlay - using inline indicators only
 
   const metricCards = [
     {
@@ -375,7 +382,7 @@ export function App(): JSX.Element {
           />
 
           <section className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-            <div className={`rounded-3xl border p-6 shadow-soft backdrop-blur-xl ${
+            <div data-chart className={`rounded-3xl border p-6 shadow-soft backdrop-blur-xl ${
               theme === 'dark' ? 'border-white/10 bg-black/40' : 'border-slate-200 bg-white/80'
             }`}>
               <MarketBubbleChart
@@ -386,7 +393,7 @@ export function App(): JSX.Element {
                 theme={theme}
               />
             </div>
-            <div className="space-y-6">
+            <div data-metrics className="space-y-6">
               <div className="grid gap-3" data-animate>
                 {metricCards.map((metric) => (
                   <div
@@ -424,7 +431,7 @@ export function App(): JSX.Element {
         </main>
       </div>
 
-      {overlayActive && <LoadingOverlay text={overlayText} />}
+      {/* LoadingOverlay removed for better UX */}
       <StatusToast
         message={status?.message ?? null}
         type={status?.type ?? 'success'}

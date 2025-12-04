@@ -83,7 +83,16 @@ app.post('/api/sync', async (c) => {
 })
 
 app.post('/api/research', async (c) => {
-  const payload = await c.req.json().catch(() => ({}))
+  let payload: unknown
+  try {
+    payload = await c.req.json()
+  } catch (parseError) {
+    console.error('[api/research] JSON parse error:', parseError)
+    return c.json({ 
+      status: 'error', 
+      message: 'Invalid JSON in request body' 
+    }, 400)
+  }
 
   try {
     const input = researchRequestSchema.parse(payload)
@@ -108,7 +117,16 @@ app.post('/api/research', async (c) => {
 })
 
 app.post('/api/report', async (c) => {
-  const payload = await c.req.json().catch(() => ({}))
+  let payload: unknown
+  try {
+    payload = await c.req.json()
+  } catch (parseError) {
+    console.error('[api/report] JSON parse error:', parseError)
+    return c.json({ 
+      status: 'error', 
+      message: 'Invalid JSON in request body' 
+    }, 400)
+  }
 
   try {
     const input = reportRequestSchema.parse(payload)
@@ -119,7 +137,7 @@ app.post('/api/report', async (c) => {
 
     const pdfBuffer = await generatePdfReport(c.env, record, {
       chartImageData: input.chartImageData ?? null,
-      aiModel: 'gpt-5.1'
+      aiModel: 'gpt-4o'
     })
 
     const filename = `${record.segment.replace(/[^a-zA-Z0-9\-_.]/g, '_')}_${record.year}.pdf`

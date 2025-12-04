@@ -80,7 +80,7 @@ const renderReportHtml = (
   options: PdfReportOptions
 ): string => {
   const issuedAt = options.issuedAt ?? new Date().toISOString()
-  const aiModel = options.aiModel ?? 'gpt-5.1'
+  const aiModel = options.aiModel ?? 'gpt-4o'
 
   return `<!DOCTYPE html>
 <html lang="ja">

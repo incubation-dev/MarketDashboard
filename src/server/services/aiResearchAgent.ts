@@ -13,7 +13,7 @@ import {
 
 const OPENAI_ENDPOINT = 'https://api.openai.com/v1/chat/completions'
 const SERP_API_ENDPOINT = 'https://serpapi.com/search.json'
-const OPENAI_MODEL = 'gpt-5.1'
+const OPENAI_MODEL = 'gpt-4o'
 
 const aiResponseSchema = z.object({
   segment: z.string(),
@@ -223,15 +223,24 @@ const callOpenAI = async (env: Bindings, context: OpenAIContext) => {
 
   const json = await response.json()
   if (!response.ok) {
+    console.error('[callOpenAI] OpenAI API error:', JSON.stringify(json, null, 2))
     throw new Error(json?.error?.message ?? 'OpenAI API error')
   }
 
   const content = json?.choices?.[0]?.message?.content
-  if (typeof content !== 'string') {
+  if (typeof content !== 'string' || content.trim().length === 0) {
+    console.error('[callOpenAI] Invalid response content:', json)
     throw new Error('OpenAIレスポンスに解析可能なJSONが含まれていません')
   }
 
-  const parsed = JSON.parse(content)
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(content)
+  } catch (parseError) {
+    console.error('[callOpenAI] JSON parse failed. Content:', content)
+    throw new Error(`OpenAIレスポンスのJSON解析に失敗: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`)
+  }
+
   return aiResponseSchema.parse(parsed)
 }
 
@@ -314,7 +323,13 @@ export const runMarketResearchAndPersist = async (
     timestamp: new Date().toISOString()
   }
 
-  await pushResearchResultToNotion(env, record, pushContext)
+  // Notion sync with error handling - don't fail entire request if Notion update fails
+  try {
+    await pushResearchResultToNotion(env, record, pushContext)
+  } catch (notionError) {
+    console.error('[runMarketResearchAndPersist] Notion sync failed (non-fatal):', notionError)
+    // Continue execution - D1 data is already saved
+  }
 
   return {
     record,

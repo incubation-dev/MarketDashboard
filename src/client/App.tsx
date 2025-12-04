@@ -3,7 +3,7 @@ import { animate, stagger } from '@motionone/dom'
 import { FilterBar } from './components/FilterBar'
 import { MarketBubbleChart } from './components/MarketBubbleChart'
 import type { ChartJSOrUndefined } from 'react-chartjs-2'
-import { PlayerMetricCard } from './components/PlayerMetricCard'
+// PlayerMetricCard removed - now using compact inline display
 import { DetailPanel } from './components/DetailPanel'
 import { StatusToast } from './components/StatusToast'
 // LoadingOverlay removed - using inline loading indicators instead
@@ -381,10 +381,51 @@ export function App(): JSX.Element {
             theme={theme}
           />
 
-          <section className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+          {/* Metrics Cards - Horizontal Layout */}
+          <section className="grid gap-3 md:grid-cols-3 lg:grid-cols-4" data-metrics data-animate>
+            {metricCards.map((metric) => (
+              <div
+                key={metric.label}
+                className={`rounded-3xl border px-5 py-4 text-sm ${
+                  theme === 'dark'
+                    ? 'border-white/10 bg-white/5 text-slate-200'
+                    : 'border-slate-200 bg-slate-50 text-slate-800'
+                }`}
+              >
+                <p className={`text-xs uppercase tracking-[0.3em] ${
+                  theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
+                }`}>{metric.label}</p>
+                <p className={`mt-2 text-lg font-semibold ${
+                  theme === 'dark' ? 'text-white' : 'text-slate-900'
+                }`}>{metric.value}</p>
+              </div>
+            ))}
+            {/* Main Players - Compact */}
+            <div className={`rounded-3xl border px-5 py-4 text-sm ${
+              theme === 'dark'
+                ? 'border-white/10 bg-white/5 text-slate-200'
+                : 'border-slate-200 bg-slate-50 text-slate-800'
+            }`}>
+              <p className={`text-xs uppercase tracking-[0.3em] ${
+                theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
+              }`}>主要プレイヤー</p>
+              <div className="mt-2 flex flex-wrap gap-1">
+                {aggregatedPlayers.slice(0, 5).map((p, i) => (
+                  <span key={i} className={`text-xs px-2 py-1 rounded-full ${
+                    theme === 'dark' ? 'bg-brand/20 text-brand-light' : 'bg-brand/10 text-brand'
+                  }`}>
+                    {p.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Market Bubble Chart - Full Width */}
+          <section className="grid gap-6">
             <div data-chart className={`rounded-3xl border p-6 shadow-soft backdrop-blur-xl ${
               theme === 'dark' ? 'border-white/10 bg-black/40' : 'border-slate-200 bg-white/80'
-            }`}>
+            }`} style={{ minHeight: '600px' }}>
               <MarketBubbleChart
                 ref={chartRef}
                 data={filteredRecords}
@@ -393,34 +434,38 @@ export function App(): JSX.Element {
                 theme={theme}
               />
             </div>
-            <div data-metrics className="space-y-6">
-              <div className="grid gap-3" data-animate>
-                {metricCards.map((metric) => (
-                  <div
-                    key={metric.label}
-                    className={`rounded-3xl border px-5 py-4 text-sm ${
-                      theme === 'dark'
-                        ? 'border-white/10 bg-white/5 text-slate-200'
-                        : 'border-slate-200 bg-slate-50 text-slate-800'
-                    }`}
-                  >
-                    <p className={`text-xs uppercase tracking-[0.3em] ${
-                      theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
-                    }`}>{metric.label}</p>
-                    <p className={`mt-2 text-lg font-semibold ${
-                      theme === 'dark' ? 'text-white' : 'text-slate-900'
-                    }`}>{metric.value}</p>
+          </section>
+
+          {/* Market Overview Section - Below Chart */}
+          {selectedRecord && selectedRecord.subpages && selectedRecord.subpages.length > 0 && (
+            <section className={`rounded-3xl border p-6 shadow-soft backdrop-blur-xl ${
+              theme === 'dark' ? 'border-white/10 bg-black/40' : 'border-slate-200 bg-white/80'
+            }`}>
+              <h3 className={`text-xl font-semibold mb-4 ${
+                theme === 'dark' ? 'text-white' : 'text-slate-900'
+              }`}>
+                市場概況：{selectedRecord.segment}
+              </h3>
+              <div className="space-y-4">
+                {selectedRecord.subpages.map((subpage, index) => (
+                  <div key={index} className={`p-4 rounded-xl ${
+                    theme === 'dark' ? 'bg-white/5' : 'bg-slate-50'
+                  }`}>
+                    <h4 className={`text-sm font-semibold mb-2 ${
+                      theme === 'dark' ? 'text-slate-200' : 'text-slate-800'
+                    }`}>
+                      {subpage.title}
+                    </h4>
+                    <div className={`text-xs prose prose-sm max-w-none ${
+                      theme === 'dark' ? 'prose-invert' : ''
+                    }`}>
+                      <pre className="whitespace-pre-wrap font-sans">{subpage.markdown}</pre>
+                    </div>
                   </div>
                 ))}
               </div>
-              <PlayerMetricCard
-                title="主要プレイヤー"
-                subtitle="頻出企業"
-                players={aggregatedPlayers}
-                theme={theme}
-              />
-            </div>
-          </section>
+            </section>
+          )}
 
           <DetailPanel
             record={selectedRecord}

@@ -5,8 +5,8 @@ const NOTION_API_BASE = 'https://api.notion.com/v1'
 const NOTION_VERSION = '2022-06-28'
 
 export const NOTION_YEAR_PROPERTY_MAP: Record<number, string> = {
-  2025: '2025年',
-  2030: '2030年'
+  2025: '2025年市場規模（億円）',
+  2030: '2030年市場規模（億円）'
 }
 
 const optionalString = (value: unknown): string | null => {
@@ -320,8 +320,8 @@ const mapPageToMarketDataInputs = async (
   const issue =
     parseRichTextProperty(properties['課題']) ?? parseRichTextProperty(properties['Issue']) ?? null
 
-  const growthRate = parseNumberProperty(properties['市場成長率'])
-  const top10Ratio = parseNumberProperty(properties['上位10社比率'])
+  const growthRate = parseNumberProperty(properties['市場成長率（CAGR％）'])
+  const top10Ratio = parseNumberProperty(properties['上位10社市場占有率(%)'])
   const players = parseMultiSelectProperty(properties['主要プレイヤー'])
   const links = parseLinksProperty(properties['リンク'])
   const remarks = parseRichTextProperty(properties['備考'])

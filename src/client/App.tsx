@@ -52,7 +52,7 @@ const computeAggregateMetrics = (records: MarketDataRecord[]): AggregateMetrics 
   }
 }
 
-const collectTopPlayers = (records: MarketDataRecord[]): string[] => {
+const collectTopPlayers = (records: MarketDataRecord[]): Array<{ name: string; count: number }> => {
   const counter = new Map<string, number>()
   for (const record of records) {
     for (const player of record.players) {
@@ -62,8 +62,8 @@ const collectTopPlayers = (records: MarketDataRecord[]): string[] => {
   }
   return Array.from(counter.entries())
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 6)
-    .map(([player]) => player)
+    .slice(0, 10)
+    .map(([player, count]) => ({ name: player, count }))
 }
 
 // deriveOverlayText removed - no longer using fullscreen overlay

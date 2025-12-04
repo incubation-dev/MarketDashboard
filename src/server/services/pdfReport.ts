@@ -50,10 +50,10 @@ const renderSubpages = (record: MarketDataRecord) => {
   return record.subpages
     .map((subpage) => {
       return `
-        <section class="subpage">
-          <h3>${escapeHtml(subpage.title)}</h3>
-          <pre>${escapeHtml(subpage.markdown)}</pre>
-        </section>
+        <div class="insight-card">
+          <h3><span class="bullet">●</span>${escapeHtml(subpage.title)}</h3>
+          <div class="insight-content">${escapeHtml(subpage.markdown)}</div>
+        </div>
       `
     })
     .join('')
@@ -228,7 +228,7 @@ const renderReportHtml = (
     </section>
 
     <section>
-      <h2>Notion サブページ抜粋</h2>
+      <h2>市場インサイト</h2>
       ${renderSubpages(record)}
     </section>
 

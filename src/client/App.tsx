@@ -438,28 +438,38 @@ export function App(): JSX.Element {
 
           {/* Market Overview Section - Below Chart */}
           {selectedRecord && selectedRecord.subpages && selectedRecord.subpages.length > 0 && (
-            <section className={`rounded-3xl border p-6 shadow-soft backdrop-blur-xl ${
-              theme === 'dark' ? 'border-white/10 bg-black/40' : 'border-slate-200 bg-white/80'
-            }`}>
-              <h3 className={`text-xl font-semibold mb-4 ${
-                theme === 'dark' ? 'text-white' : 'text-slate-900'
-              }`}>
-                市場概況：{selectedRecord.segment}
-              </h3>
-              <div className="space-y-4">
+            <section className={`rounded-3xl border p-8 shadow-xl backdrop-blur-xl ${
+              theme === 'dark' ? 'border-white/10 bg-black/40' : 'border-slate-200 bg-white/90'
+            }`} data-animate>
+              <div className="flex items-center gap-3 mb-6">
+                <div className={`w-1 h-8 rounded-full ${
+                  theme === 'dark' ? 'bg-[#aa0000]' : 'bg-[#aa0000]'
+                }`}></div>
+                <h3 className={`text-2xl font-bold ${
+                  theme === 'dark' ? 'text-white' : 'text-slate-900'
+                }`}>
+                  市場インサイト：{selectedRecord.segment}
+                </h3>
+              </div>
+              <div className="space-y-6">
                 {selectedRecord.subpages.map((subpage, index) => (
-                  <div key={index} className={`p-4 rounded-xl ${
-                    theme === 'dark' ? 'bg-white/5' : 'bg-slate-50'
+                  <div key={index} className={`p-6 rounded-2xl border ${
+                    theme === 'dark' 
+                      ? 'bg-white/5 border-white/10' 
+                      : 'bg-slate-50 border-slate-200'
                   }`}>
-                    <h4 className={`text-sm font-semibold mb-2 ${
-                      theme === 'dark' ? 'text-slate-200' : 'text-slate-800'
+                    <h4 className={`text-base font-bold mb-3 flex items-center gap-2 ${
+                      theme === 'dark' ? 'text-slate-100' : 'text-slate-900'
                     }`}>
+                      <span className={`inline-block w-2 h-2 rounded-full ${
+                        theme === 'dark' ? 'bg-[#aa0000]' : 'bg-[#aa0000]'
+                      }`}></span>
                       {subpage.title}
                     </h4>
-                    <div className={`text-xs prose prose-sm max-w-none ${
-                      theme === 'dark' ? 'prose-invert' : ''
+                    <div className={`text-sm leading-relaxed ${
+                      theme === 'dark' ? 'text-slate-300' : 'text-slate-700'
                     }`}>
-                      <pre className="whitespace-pre-wrap font-sans">{subpage.markdown}</pre>
+                      <div className="whitespace-pre-wrap">{subpage.markdown}</div>
                     </div>
                   </div>
                 ))}

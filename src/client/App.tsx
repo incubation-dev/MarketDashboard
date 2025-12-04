@@ -409,9 +409,9 @@ export function App(): JSX.Element {
               <p className={`text-xs uppercase tracking-[0.3em] ${
                 theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
               }`}>主要プレイヤー</p>
-              <div className="mt-2 flex flex-wrap gap-1">
-                {aggregatedPlayers.slice(0, 5).map((p, i) => (
-                  <span key={i} className={`text-xs px-2 py-1 rounded-full ${
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {aggregatedPlayers.slice(0, 8).map((p, i) => (
+                  <span key={i} className={`text-sm px-3 py-1.5 rounded-full font-medium ${
                     theme === 'dark' ? 'bg-brand/20 text-brand-light' : 'bg-brand/10 text-brand'
                   }`}>
                     {p.name}
@@ -425,7 +425,7 @@ export function App(): JSX.Element {
           <section className="grid gap-6">
             <div data-chart className={`rounded-3xl border p-6 shadow-soft backdrop-blur-xl ${
               theme === 'dark' ? 'border-white/10 bg-black/40' : 'border-slate-200 bg-white/80'
-            }`} style={{ minHeight: '600px' }}>
+            }`} style={{ minHeight: '900px' }}>
               <MarketBubbleChart
                 ref={chartRef}
                 data={filteredRecords}

@@ -382,37 +382,37 @@ export function App(): JSX.Element {
           />
 
           {/* Metrics Cards - Horizontal Layout */}
-          <section className="grid gap-3 md:grid-cols-3 lg:grid-cols-4" data-metrics data-animate>
+          <section className="grid gap-4 md:grid-cols-3 lg:grid-cols-4" data-metrics data-animate>
             {metricCards.map((metric) => (
               <div
                 key={metric.label}
-                className={`rounded-3xl border px-5 py-4 text-sm ${
+                className={`rounded-3xl border px-8 py-6 shadow-lg ${
                   theme === 'dark'
-                    ? 'border-white/10 bg-white/5 text-slate-200'
-                    : 'border-slate-200 bg-slate-50 text-slate-800'
+                    ? 'border-white/10 bg-gradient-to-br from-white/10 to-white/5 text-slate-200'
+                    : 'border-slate-200 bg-gradient-to-br from-white to-slate-50 text-slate-800'
                 }`}
               >
-                <p className={`text-xs uppercase tracking-[0.3em] ${
+                <p className={`text-xs uppercase tracking-[0.4em] font-bold mb-3 ${
                   theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
                 }`}>{metric.label}</p>
-                <p className={`mt-2 text-lg font-semibold ${
+                <p className={`text-3xl font-bold tracking-tight ${
                   theme === 'dark' ? 'text-white' : 'text-slate-900'
                 }`}>{metric.value}</p>
               </div>
             ))}
             {/* Main Players */}
-            <div className={`rounded-3xl border px-6 py-5 ${
+            <div className={`rounded-3xl border px-8 py-6 shadow-lg ${
               theme === 'dark'
-                ? 'border-white/10 bg-white/5 text-slate-200'
-                : 'border-slate-200 bg-slate-50 text-slate-800'
+                ? 'border-white/10 bg-gradient-to-br from-white/10 to-white/5 text-slate-200'
+                : 'border-slate-200 bg-gradient-to-br from-white to-slate-50 text-slate-800'
             }`}>
-              <p className={`text-sm uppercase tracking-[0.3em] font-semibold mb-3 ${
-                theme === 'dark' ? 'text-slate-300' : 'text-slate-700'
+              <p className={`text-xs uppercase tracking-[0.4em] font-bold mb-3 ${
+                theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
               }`}>主要プレイヤー</p>
               <div className="flex flex-wrap gap-2">
-                {aggregatedPlayers.slice(0, 10).map((p, i) => (
-                  <span key={i} className={`text-base px-4 py-2 rounded-full font-semibold shadow-sm ${
-                    theme === 'dark' ? 'bg-[#aa0000] text-white' : 'bg-brand/20 text-brand'
+                {aggregatedPlayers.slice(0, 5).map((p, i) => (
+                  <span key={i} className={`text-sm px-3 py-1.5 rounded-full font-bold shadow-md ${
+                    theme === 'dark' ? 'bg-[#aa0000] text-white' : 'bg-brand text-white'
                   }`}>
                     {p.name}
                   </span>

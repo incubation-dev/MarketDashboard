@@ -350,12 +350,12 @@ const mapPageToMarketDataInputs = async (
   for (const [year, propertyName] of Object.entries(NOTION_YEAR_PROPERTY_MAP)) {
     const numericYear = Number(year)
     const property = properties[propertyName]
-    console.log(`[notionSync] Segment: ${segment}, Year: ${year}, PropertyName: ${propertyName}, PropertyType: ${property?.type}, PropertyValue:`, JSON.stringify(property))
-    const marketSize = parseNumberProperty(property)
-    console.log(`[notionSync] Parsed marketSize for ${segment} (${year}): ${marketSize}`)
-    if (marketSize === null) {
+    const marketSizeInOkuYen = parseNumberProperty(property)
+    if (marketSizeInOkuYen === null) {
       continue
     }
+    // Convert from 億円 (Oku-yen) to yen
+    const marketSize = marketSizeInOkuYen * 100000000
 
     const payload: MarketDataInput = {
       segment,

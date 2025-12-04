@@ -412,7 +412,7 @@ export function App(): JSX.Element {
               <div className="flex flex-wrap gap-2">
                 {aggregatedPlayers.slice(0, 10).map((p, i) => (
                   <span key={i} className={`text-base px-4 py-2 rounded-full font-semibold shadow-sm ${
-                    theme === 'dark' ? 'bg-brand/30 text-white' : 'bg-brand/20 text-brand'
+                    theme === 'dark' ? 'bg-[#aa0000] text-white' : 'bg-brand/20 text-brand'
                   }`}>
                     {p.name}
                   </span>

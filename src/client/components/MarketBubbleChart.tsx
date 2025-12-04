@@ -93,7 +93,7 @@ export const MarketBubbleChart = forwardRef<ChartJSOrUndefined<'bubble'>, Market
   }
 
   return (
-    <div className="flex min-h-[600px] flex-col gap-4" data-animate>
+    <div className="flex h-[500px] flex-col gap-4" data-animate>
       <div>
         <h2 className={`text-lg font-semibold ${
           isDark ? 'text-white' : 'text-slate-900'

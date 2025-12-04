@@ -7,6 +7,7 @@ import { PlayerMetricCard } from './components/PlayerMetricCard'
 import { DetailPanel } from './components/DetailPanel'
 import { StatusToast } from './components/StatusToast'
 import { LoadingOverlay } from './components/LoadingOverlay'
+import { AiChatModal } from './components/AiChatModal'
 import { fetchAllMarketData, generatePdfReportRequest, type MarketDataRecord } from './lib/api'
 import { formatMarketSize, formatPercent } from './lib/format'
 
@@ -83,10 +84,12 @@ export function App(): JSX.Element {
 
   const chartRef = useRef<ChartJSOrUndefined<'bubble'>>(null)
 
-  const [selectedSegment, setSelectedSegment] = useState<string>('ALL')
+  const [selectedSegments, setSelectedSegments] = useState<string[]>([])
   const [issueKeyword, setIssueKeyword] = useState<string>('')
   const [selectedYear, setSelectedYear] = useState<number | 'ALL'>('ALL')
   const [selectedRecord, setSelectedRecord] = useState<MarketDataRecord | null>(null)
+  const [aiChatLoading, setAiChatLoading] = useState(false)
+  const [chatModalOpen, setChatModalOpen] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -125,7 +128,7 @@ export function App(): JSX.Element {
 
   const filteredRecords = useMemo(() => {
     return records.filter((record) => {
-      if (selectedSegment !== 'ALL' && record.segment !== selectedSegment) return false
+      if (selectedSegments.length > 0 && !selectedSegments.includes(record.segment)) return false
       if (selectedYear !== 'ALL' && record.year !== selectedYear) return false
       if (keyword.length > 0) {
         const haystacks = [record.issue, record.summary, ...record.players].filter(Boolean)
@@ -134,7 +137,7 @@ export function App(): JSX.Element {
       }
       return true
     })
-  }, [records, selectedSegment, selectedYear, keyword])
+  }, [records, selectedSegments, selectedYear, keyword])
 
   useEffect(() => {
     if (filteredRecords.length === 0) {
@@ -159,10 +162,7 @@ export function App(): JSX.Element {
   const aggregatedPlayers = useMemo(() => collectTopPlayers(filteredRecords), [filteredRecords])
 
   const handleRunResearch = async () => {
-    if (selectedSegment === 'ALL' && segments.length > 0) {
-      setSelectedSegment(segments[0])
-    }
-    const targetSegment = selectedSegment === 'ALL' ? segments[0] : selectedSegment
+    const targetSegment = selectedSegments.length > 0 ? selectedSegments[0] : segments[0]
     if (!targetSegment) {
       setStatus({ message: '先に対象セグメントを選択してください', type: 'error' })
       return
@@ -199,6 +199,26 @@ export function App(): JSX.Element {
     }
   }
 
+  const handleAiChat = async (question: string) => {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        segments: selectedSegments,
+        issue: issueKeyword.trim() || undefined,
+        year: selectedYear === 'ALL' ? undefined : selectedYear,
+        question
+      })
+    })
+
+    const json = await response.json()
+    if (!response.ok || json.status !== 'ok') {
+      throw new Error(json.message ?? 'AI対話に失敗しました')
+    }
+
+    return { answer: json.answer }
+  }
+
   const handleSync = async () => {
     setSyncLoading(true)
     setStatus(null)
@@ -207,7 +227,7 @@ export function App(): JSX.Element {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          segment: selectedSegment === 'ALL' ? undefined : selectedSegment
+          segment: selectedSegments.length > 0 ? selectedSegments[0] : undefined
         })
       })
 
@@ -331,8 +351,8 @@ export function App(): JSX.Element {
         <main className="w-full space-y-8 px-8 pb-24">
           <FilterBar
             segments={segments}
-            selectedSegment={selectedSegment}
-            onSegmentChange={setSelectedSegment}
+            selectedSegments={selectedSegments}
+            onSegmentsChange={setSelectedSegments}
             issueKeyword={issueKeyword}
             onIssueChange={setIssueKeyword}
             years={years}
@@ -342,6 +362,8 @@ export function App(): JSX.Element {
             researchLoading={aiLoading}
             onSync={handleSync}
             syncLoading={syncLoading}
+            onAskAI={() => setChatModalOpen(true)}
+            aiChatLoading={aiChatLoading}
             theme={theme}
           />
 
@@ -400,6 +422,15 @@ export function App(): JSX.Element {
         message={status?.message ?? null}
         type={status?.type ?? 'success'}
         onClose={() => setStatus(null)}
+      />
+      <AiChatModal
+        isOpen={chatModalOpen}
+        onClose={() => setChatModalOpen(false)}
+        selectedSegments={selectedSegments}
+        issue={issueKeyword}
+        year={selectedYear}
+        onSubmit={handleAiChat}
+        theme={theme}
       />
     </div>
   )

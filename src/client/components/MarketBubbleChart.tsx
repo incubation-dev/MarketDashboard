@@ -50,38 +50,48 @@ export const MarketBubbleChart = forwardRef<ChartJSOrUndefined<'bubble'>, Market
 
     const scaleFactor = maxMarketSize > 0 ? 60 / Math.sqrt(maxMarketSize) : 6
 
+    // Group by segment for color assignment
+    const segmentMap = new Map<string, MarketDataRecord[]>()
+    for (const record of data) {
+      const existing = segmentMap.get(record.segment) ?? []
+      existing.push(record)
+      segmentMap.set(record.segment, existing)
+    }
+
     console.log('[MarketBubbleChart] Creating datasets for', data.length, 'records. ScaleFactor:', scaleFactor)
 
-    return {
-      datasets: data.map((record, index) => {
-        const background = bubblePalette[index % bubblePalette.length]
-        const border = background
-        const isSelected = record.id === selectedId
-        const x = fallbackValue(record.top10Ratio, 40)
-        const y = fallbackValue(record.growthRate, 5)
-        const r = Math.max(Math.sqrt(fallbackValue(record.marketSize, 50)) * scaleFactor, 8)
-        
-        if (index < 3) {
-          console.log(`[MarketBubbleChart] Record ${index}:`, record.segment, '- x:', x, 'y:', y, 'r:', r)
-        }
-        
-        return {
-          label: `${record.segment} (${record.year})`,
-          data: [
-            {
-              x,
-              y,
-              r
-            }
-          ],
-          borderColor: border,
-          backgroundColor: `${background}1A`,
-          borderWidth: isSelected ? 2.8 : 1.6,
-          hoverBorderWidth: 3,
-          hoverBackgroundColor: `${background}33`
-        }
+    let datasetIndex = 0
+    const datasets = []
+
+    for (const [segment, records] of segmentMap) {
+      const background = bubblePalette[datasetIndex % bubblePalette.length]
+      const border = background
+
+      datasets.push({
+        label: segment,
+        data: records.map(record => {
+          const isSelected = record.id === selectedId
+          const x = fallbackValue(record.top10Ratio, 40)
+          const y = fallbackValue(record.growthRate, 5)
+          const r = Math.max(Math.sqrt(fallbackValue(record.marketSize, 50)) * scaleFactor, 8)
+          return {
+            x,
+            y,
+            r: isSelected ? r * 1.2 : r,
+            record
+          }
+        }),
+        borderColor: border,
+        backgroundColor: `${background}1A`,
+        borderWidth: 1.6,
+        hoverBorderWidth: 3,
+        hoverBackgroundColor: `${background}33`
       })
+
+      datasetIndex++
     }
+
+    return { datasets }
   }, [data, selectedId])
 
   if (data.length === 0) {
@@ -116,16 +126,24 @@ export const MarketBubbleChart = forwardRef<ChartJSOrUndefined<'bubble'>, Market
           },
           plugins: {
             legend: {
-              display: false
+              display: data.length > 1,
+              position: 'bottom' as const,
+              labels: {
+                color: isDark ? 'rgba(255,255,255,0.8)' : 'rgba(15,23,42,0.8)',
+                usePointStyle: true,
+                padding: 15
+              }
             },
             tooltip: {
               callbacks: {
                 title: ([context]) => {
-                  const record = data[context.datasetIndex]
+                  const point = context.dataset.data[context.dataIndex] as any
+                  const record = point.record as MarketDataRecord
                   return `${record.segment} (${record.year})`
                 },
                 label: (context) => {
-                  const record = data[context.datasetIndex]
+                  const point = context.dataset.data[context.dataIndex] as any
+                  const record = point.record as MarketDataRecord
                   return [
                     `成長率: ${formatPercent(record.growthRate)}`,
                     `市場占有率: ${formatPercent(record.top10Ratio)}`,
@@ -149,7 +167,10 @@ export const MarketBubbleChart = forwardRef<ChartJSOrUndefined<'bubble'>, Market
                 color: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'
               },
               min: 0,
-              max: 100
+              max: (() => {
+                const maxX = data.reduce((max, r) => Math.max(max, r.top10Ratio ?? 0), 0)
+                return Math.min(Math.max(maxX * 1.2, 50), 100)
+              })()
             },
             y: {
               title: {
@@ -163,14 +184,22 @@ export const MarketBubbleChart = forwardRef<ChartJSOrUndefined<'bubble'>, Market
               grid: {
                 color: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'
               },
-              min: -10,
-              max: 30
+              min: (() => {
+                const minY = data.reduce((min, r) => Math.min(min, r.growthRate ?? 0), 0)
+                return Math.floor(Math.min(minY * 1.2, -5))
+              })(),
+              max: (() => {
+                const maxY = data.reduce((max, r) => Math.max(max, r.growthRate ?? 0), 0)
+                return Math.ceil(Math.max(maxY * 1.2, 20))
+              })()
             }
           },
           onClick: (_event, elements) => {
             if (!elements.length) return
             const first = elements[0]
-            const record = data[first.datasetIndex]
+            const dataset = chartData.datasets[first.datasetIndex]
+            const point = dataset.data[first.index] as any
+            const record = point.record as MarketDataRecord
             if (record) {
               onSelect(record)
             }

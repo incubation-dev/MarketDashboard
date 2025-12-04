@@ -386,33 +386,33 @@ export function App(): JSX.Element {
             {metricCards.map((metric) => (
               <div
                 key={metric.label}
-                className={`rounded-3xl border px-8 py-6 shadow-lg ${
+                className={`rounded-3xl border px-8 py-8 shadow-xl text-center ${
                   theme === 'dark'
-                    ? 'border-white/10 bg-gradient-to-br from-white/10 to-white/5 text-slate-200'
-                    : 'border-slate-200 bg-gradient-to-br from-white to-slate-50 text-slate-800'
+                    ? 'border-white/10 bg-white/5 text-slate-200'
+                    : 'border-slate-300 bg-slate-100 text-slate-800'
                 }`}
               >
-                <p className={`text-xs uppercase tracking-[0.4em] font-bold mb-3 ${
+                <p className={`text-sm uppercase tracking-[0.4em] font-bold mb-4 ${
                   theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
                 }`}>{metric.label}</p>
-                <p className={`text-3xl font-bold tracking-tight ${
-                  theme === 'dark' ? 'text-white' : 'text-slate-900'
+                <p className={`text-5xl font-black tracking-tight ${
+                  theme === 'dark' ? 'text-white drop-shadow-lg' : 'text-slate-900 drop-shadow-md'
                 }`}>{metric.value}</p>
               </div>
             ))}
             {/* Main Players */}
-            <div className={`rounded-3xl border px-8 py-6 shadow-lg ${
+            <div className={`rounded-3xl border px-8 py-8 shadow-xl text-center ${
               theme === 'dark'
-                ? 'border-white/10 bg-gradient-to-br from-white/10 to-white/5 text-slate-200'
-                : 'border-slate-200 bg-gradient-to-br from-white to-slate-50 text-slate-800'
+                ? 'border-white/10 bg-white/5 text-slate-200'
+                : 'border-slate-300 bg-slate-100 text-slate-800'
             }`}>
-              <p className={`text-xs uppercase tracking-[0.4em] font-bold mb-3 ${
+              <p className={`text-sm uppercase tracking-[0.4em] font-bold mb-4 ${
                 theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
               }`}>主要プレイヤー</p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 justify-center">
                 {aggregatedPlayers.slice(0, 5).map((p, i) => (
-                  <span key={i} className={`text-sm px-3 py-1.5 rounded-full font-bold shadow-md ${
-                    theme === 'dark' ? 'bg-[#aa0000] text-white' : 'bg-brand text-white'
+                  <span key={i} className={`text-sm px-4 py-2 rounded-full font-bold shadow-lg ${
+                    theme === 'dark' ? 'bg-[#aa0000] text-white' : 'bg-[#aa0000] text-white'
                   }`}>
                     {p.name}
                   </span>

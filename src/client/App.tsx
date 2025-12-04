@@ -425,7 +425,7 @@ export function App(): JSX.Element {
           <section className="grid gap-6">
             <div data-chart className={`rounded-3xl border p-6 shadow-soft backdrop-blur-xl ${
               theme === 'dark' ? 'border-white/10 bg-black/40' : 'border-slate-200 bg-white/80'
-            }`} style={{ minHeight: '1200px' }}>
+            }`} style={{ height: 'calc(100vh - 480px)', minHeight: '600px', maxHeight: '1000px' }}>
               <MarketBubbleChart
                 ref={chartRef}
                 data={filteredRecords}

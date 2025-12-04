@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 type FilterBarProps = {
   segments: string[]
   selectedSegments: string[]
@@ -57,13 +59,13 @@ export function FilterBar({
   }
   
   return (
-    <div className={`grid gap-4 rounded-3xl border p-6 shadow-soft backdrop-blur-xl ${
+    <div className={`relative grid gap-4 rounded-3xl border p-6 shadow-soft backdrop-blur-xl ${
       isDark
         ? 'border-white/10 bg-black/40'
         : 'border-slate-200 bg-white/80'
-    }`} data-animate>
+    }`} data-animate style={{ zIndex: 100 }}>
       <div className="grid gap-3 md:grid-cols-3">
-        <div className="form-control w-full relative z-[100]">
+        <div className="form-control w-full">
           <div className="label">
             <span className={`label-text text-xs uppercase tracking-[0.3em] ${
               isDark ? 'text-slate-300' : 'text-slate-600'
@@ -87,10 +89,10 @@ export function FilterBar({
             {dropdownOpen && (
               <>
                 <div 
-                  className="fixed inset-0 z-[99]" 
+                  className="fixed inset-0 z-[998]" 
                   onClick={() => setDropdownOpen(false)}
                 />
-                <ul className={`absolute top-full left-0 mt-2 w-full max-h-96 overflow-y-auto rounded-box shadow-2xl z-[100] menu ${
+                <ul className={`absolute top-full left-0 mt-2 w-full max-h-96 overflow-y-auto rounded-box shadow-2xl z-[999] menu ${
                   isDark ? 'bg-slate-800 border border-white/10' : 'bg-white border border-slate-200'
                 }`}>
               <li>

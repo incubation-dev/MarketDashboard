@@ -341,13 +341,29 @@ const mapPageToMarketDataInputs = async (
     // Continue processing without subpages
   }
 
+  // If no subpages found, use page content as insights
+  let pageContent = ''
+  if (subpages.length === 0) {
+    try {
+      console.log(`[notionSync] No subpages found, fetching page content for: ${segment}`)
+      const pageBlocks = await fetchAllBlockChildren(env, notionPageId)
+      if (pageBlocks.length > 0) {
+        pageContent = renderBlocksToMarkdown(pageBlocks)
+        console.log(`[notionSync] Fetched ${pageBlocks.length} blocks (${pageContent.length} chars) for ${segment}`)
+      }
+    } catch (error) {
+      console.error(`Failed to fetch page content for ${notionPageId}:`, error)
+    }
+  }
+
   const subpageMarkdown =
     subpages.length > 0
       ? subpages
           .map((subpage) => `### ${subpage.title}\n${subpage.markdown}`)
           .join('\n\n')
       : null
-  const summaryPieces = [remarks, subpageMarkdown].filter(Boolean) as string[]
+  
+  const summaryPieces = [remarks, subpageMarkdown, pageContent].filter(Boolean) as string[]
 
   const inputs: MarketDataInput[] = []
 

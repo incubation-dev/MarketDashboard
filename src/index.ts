@@ -89,6 +89,72 @@ app.post('/api/sync', async (c) => {
   }
 })
 
+// Debug endpoint to find page ID by segment name
+app.get('/api/debug/find-page/:segment', async (c) => {
+  const segment = decodeURIComponent(c.req.param('segment'))
+  
+  try {
+    const { fetchDatabasePages } = await import('./server/services/notionSync')
+    const pages = await fetchDatabasePages(c.env, c.env.NOTION_DATABASE_ID, segment)
+    
+    if (pages.length === 0) {
+      return c.json({ status: 'not_found', segment })
+    }
+    
+    const page = pages[0]
+    const properties = page.properties || {}
+    const segmentTitle = properties['市場セグメント']?.title?.[0]?.plain_text || 'Unknown'
+    
+    return c.json({
+      status: 'found',
+      segment: segmentTitle,
+      pageId: page.id,
+      url: page.url || null
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return c.json({ status: 'error', message }, 500)
+  }
+})
+
+// Debug endpoint to test Notion page structure
+app.get('/api/debug/notion-page/:pageId', async (c) => {
+  const pageId = c.req.param('pageId')
+  
+  try {
+    const { notionFetch } = await import('./server/services/notionSync')
+    
+    // Fetch page blocks
+    const blocksResponse = await notionFetch(c.env, `/blocks/${pageId}/children?page_size=100`)
+    const blocks = blocksResponse.results || []
+    
+    // Count block types
+    const blockTypes = blocks.reduce((acc: Record<string, number>, block: any) => {
+      acc[block.type] = (acc[block.type] || 0) + 1
+      return acc
+    }, {})
+    
+    // Find child pages
+    const childPages = blocks
+      .filter((b: any) => b.type === 'child_page')
+      .map((b: any) => ({
+        id: b.id,
+        title: b.child_page?.title || 'Untitled'
+      }))
+    
+    return c.json({
+      pageId,
+      totalBlocks: blocks.length,
+      blockTypes,
+      childPages,
+      hasChildPages: childPages.length > 0
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return c.json({ status: 'error', message }, 500)
+  }
+})
+
 // AI Chat endpoint
 app.post('/api/chat', async (c) => {
   let payload: unknown

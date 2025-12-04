@@ -451,6 +451,7 @@ export function App(): JSX.Element {
                   市場インサイト：{selectedRecord.segment}
                 </h3>
               </div>
+              {/* Show subpages if available */}
               {selectedRecord.subpages && selectedRecord.subpages.length > 0 ? (
                 <div className="space-y-6">
                   {selectedRecord.subpages.map((subpage, index) => (
@@ -475,6 +476,19 @@ export function App(): JSX.Element {
                     </div>
                   ))}
                 </div>
+              ) : selectedRecord.summary ? (
+                /* Show page content from summary if no subpages */
+                <div className={`p-6 rounded-2xl border ${
+                  theme === 'dark' 
+                    ? 'bg-white/5 border-white/10' 
+                    : 'bg-slate-50 border-slate-200'
+                }`}>
+                  <div className={`text-sm leading-relaxed ${
+                    theme === 'dark' ? 'text-slate-300' : 'text-slate-700'
+                  }`}>
+                    <div className="whitespace-pre-wrap">{selectedRecord.summary}</div>
+                  </div>
+                </div>
               ) : (
                 <div className={`p-8 rounded-2xl border text-center ${
                   theme === 'dark' 
@@ -484,8 +498,8 @@ export function App(): JSX.Element {
                   <p className={`text-sm ${
                     theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
                   }`}>
-                    この市場セグメントには、Notionの子ページ（インサイト情報）がまだ登録されていません。<br />
-                    Notionで子ページを追加し、「Notion同期」ボタンをクリックしてデータを更新してください。
+                    この市場セグメントには、Notionのコンテンツがまだ登録されていません。<br />
+                    Notionでコンテンツを追加し、「Notion同期」ボタンをクリックしてデータを更新してください。
                   </p>
                 </div>
               )}

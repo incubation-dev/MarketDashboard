@@ -247,17 +247,41 @@ async function fetchAllBlockChildren(env: Bindings, blockId: string): Promise<an
 async function collectSubpages(
   env: Bindings,
   pageId: string,
-  parentPath: string
+  parentPath: string,
+  depth: number = 0,
+  maxDepth: number = 2
 ): Promise<MarketDataSubpage[]> {
-  const children = await fetchAllBlockChildren(env, pageId)
+  // Limit recursion depth to avoid "too many subrequests" error
+  if (depth >= maxDepth) {
+    return []
+  }
+
+  let children: any[] = []
+  try {
+    children = await fetchAllBlockChildren(env, pageId)
+  } catch (error) {
+    console.error(`Failed to fetch children for page ${pageId}:`, error)
+    return []
+  }
+
   const subpages: MarketDataSubpage[] = []
 
   for (const block of children) {
     if (block.type !== 'child_page') continue
     const childId: string = block.id
     const title: string = block.child_page?.title ?? 'Untitled'
-    const nestedBlocks = await fetchAllBlockChildren(env, childId)
-    const markdown = renderBlocksToMarkdown(nestedBlocks)
+    
+    let nestedBlocks: any[] = []
+    let markdown = ''
+    
+    try {
+      nestedBlocks = await fetchAllBlockChildren(env, childId)
+      markdown = renderBlocksToMarkdown(nestedBlocks)
+    } catch (error) {
+      console.error(`Failed to fetch blocks for subpage ${childId}:`, error)
+      markdown = `[Error loading content for: ${title}]`
+    }
+
     const currentPath = parentPath ? `${parentPath}/${title}` : title
 
     subpages.push({
@@ -267,8 +291,13 @@ async function collectSubpages(
       markdown
     })
 
-    const nestedSubpages = await collectSubpages(env, childId, currentPath)
-    subpages.push(...nestedSubpages)
+    // Recursively collect nested subpages with depth tracking
+    try {
+      const nestedSubpages = await collectSubpages(env, childId, currentPath, depth + 1, maxDepth)
+      subpages.push(...nestedSubpages)
+    } catch (error) {
+      console.error(`Failed to collect nested subpages for ${childId}:`, error)
+    }
   }
 
   return subpages
@@ -296,7 +325,15 @@ const mapPageToMarketDataInputs = async (
 
   const notionPageId = page.id
   const parentId = page.parent?.database_id ?? null
-  const subpages = await collectSubpages(env, notionPageId, segment)
+  
+  let subpages: MarketDataSubpage[] = []
+  try {
+    subpages = await collectSubpages(env, notionPageId, segment)
+  } catch (error) {
+    console.error(`Failed to collect subpages for ${notionPageId}:`, error)
+    // Continue processing without subpages
+  }
+
   const subpageMarkdown =
     subpages.length > 0
       ? subpages

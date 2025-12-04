@@ -79,6 +79,7 @@ export function App(): JSX.Element {
   const [pdfLoading, setPdfLoading] = useState(false)
   const [status, setStatus] = useState<StatusState>(null)
   const [refreshToken, setRefreshToken] = useState(0)
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark')
 
   const chartRef = useRef<ChartJSOrUndefined<'bubble'>>(null)
 
@@ -276,23 +277,58 @@ export function App(): JSX.Element {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-neutral-950 to-slate-900 text-base-content">
+    <div className={`min-h-screen transition-colors duration-300 ${
+      theme === 'dark'
+        ? 'bg-gradient-to-br from-black via-neutral-950 to-slate-900 text-white'
+        : 'bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-900'
+    }`}>
       <div className="relative isolate overflow-hidden">
-        <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,#aa000033,transparent_55%),radial-gradient(circle_at_bottom_right,#1d4ed833,transparent_55%)]" />
+        <div className={`pointer-events-none absolute inset-0 -z-10 ${
+          theme === 'dark'
+            ? 'bg-[radial-gradient(circle_at_top_left,#aa000033,transparent_55%),radial-gradient(circle_at_bottom_right,#1d4ed833,transparent_55%)]'
+            : 'bg-[radial-gradient(circle_at_top_left,#aa000011,transparent_55%),radial-gradient(circle_at_bottom_right,#1d4ed811,transparent_55%)]'
+        }`} />
 
-        <header className="mx-auto max-w-6xl px-6 pt-16 pb-10" data-animate>
-          <span className="badge badge-outline border-brand/50 bg-brand/10 text-xs uppercase tracking-[0.4em] text-brand">
-            Market Intelligence
-          </span>
-          <h1 className="mt-6 text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-            Notion-Driven Market Intelligence Dashboard
-          </h1>
-          <p className="mt-3 max-w-3xl text-sm text-slate-300">
-            NotionをマスターDBとして活用し、AIが自動で市場動向を補完。リアルタイムの可視化と分析レポート生成をワンストップで実現します。
-          </p>
+        <header className="mx-auto max-w-7xl px-6 pt-16 pb-10" data-animate>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <span className="badge badge-outline border-brand/50 bg-brand/10 text-xs uppercase tracking-[0.4em] text-brand">
+                Market Intelligence
+              </span>
+              <h1 className={`mt-6 text-4xl font-semibold tracking-tight sm:text-5xl ${
+                theme === 'dark' ? 'text-white' : 'text-slate-900'
+              }`}>
+                Notion-Driven Market Intelligence Dashboard
+              </h1>
+              <p className={`mt-3 max-w-3xl text-sm ${
+                theme === 'dark' ? 'text-slate-300' : 'text-slate-600'
+              }`}>
+                NotionをマスターDBとして活用し、AIが自動で市場動向を補完。リアルタイムの可視化と分析レポート生成をワンストップで実現します。
+              </p>
+            </div>
+            <button
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className={`ml-4 rounded-lg p-3 transition-all ${
+                theme === 'dark'
+                  ? 'bg-white/10 hover:bg-white/20 text-white'
+                  : 'bg-slate-900/10 hover:bg-slate-900/20 text-slate-900'
+              }`}
+              aria-label="Toggle theme"
+            >
+              {theme === 'dark' ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+              )}
+            </button>
+          </div>
         </header>
 
-        <main className="mx-auto max-w-6xl space-y-8 px-6 pb-24">
+        <main className="mx-auto max-w-7xl space-y-8 px-6 pb-24">
           <FilterBar
             segments={segments}
             selectedSegment={selectedSegment}

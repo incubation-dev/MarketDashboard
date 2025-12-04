@@ -259,12 +259,15 @@ async function collectSubpages(
   let children: any[] = []
   try {
     children = await fetchAllBlockChildren(env, pageId)
+    console.log(`[collectSubpages] Found ${children.length} blocks for page ${pageId}`)
   } catch (error) {
     console.error(`Failed to fetch children for page ${pageId}:`, error)
     return []
   }
 
   const subpages: MarketDataSubpage[] = []
+  const childPageBlocks = children.filter((b) => b.type === 'child_page')
+  console.log(`[collectSubpages] Found ${childPageBlocks.length} child_page blocks`)
 
   for (const block of children) {
     if (block.type !== 'child_page') continue
@@ -332,6 +335,10 @@ const mapPageToMarketDataInputs = async (
   let subpages: MarketDataSubpage[] = []
   try {
     subpages = await collectSubpages(env, notionPageId, segment)
+    console.log(`[notionSync] Collected ${subpages.length} subpages for segment: ${segment}`)
+    if (subpages.length > 0) {
+      console.log(`[notionSync] First subpage: ${subpages[0].title} (${subpages[0].id})`)
+    }
   } catch (error) {
     console.error(`Failed to collect subpages for ${notionPageId}:`, error)
     // Continue processing without subpages

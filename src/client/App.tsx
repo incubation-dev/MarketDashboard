@@ -437,7 +437,7 @@ export function App(): JSX.Element {
           </section>
 
           {/* Market Overview Section - Below Chart */}
-          {selectedRecord && selectedRecord.subpages && selectedRecord.subpages.length > 0 && (
+          {selectedRecord && (
             <section className={`rounded-3xl border p-8 shadow-xl backdrop-blur-xl ${
               theme === 'dark' ? 'border-white/10 bg-black/40' : 'border-slate-200 bg-white/90'
             }`} data-animate>
@@ -451,29 +451,44 @@ export function App(): JSX.Element {
                   市場インサイト：{selectedRecord.segment}
                 </h3>
               </div>
-              <div className="space-y-6">
-                {selectedRecord.subpages.map((subpage, index) => (
-                  <div key={index} className={`p-6 rounded-2xl border ${
-                    theme === 'dark' 
-                      ? 'bg-white/5 border-white/10' 
-                      : 'bg-slate-50 border-slate-200'
-                  }`}>
-                    <h4 className={`text-base font-bold mb-3 flex items-center gap-2 ${
-                      theme === 'dark' ? 'text-slate-100' : 'text-slate-900'
+              {selectedRecord.subpages && selectedRecord.subpages.length > 0 ? (
+                <div className="space-y-6">
+                  {selectedRecord.subpages.map((subpage, index) => (
+                    <div key={index} className={`p-6 rounded-2xl border ${
+                      theme === 'dark' 
+                        ? 'bg-white/5 border-white/10' 
+                        : 'bg-slate-50 border-slate-200'
                     }`}>
-                      <span className={`inline-block w-2 h-2 rounded-full ${
-                        theme === 'dark' ? 'bg-[#aa0000]' : 'bg-[#aa0000]'
-                      }`}></span>
-                      {subpage.title}
-                    </h4>
-                    <div className={`text-sm leading-relaxed ${
-                      theme === 'dark' ? 'text-slate-300' : 'text-slate-700'
-                    }`}>
-                      <div className="whitespace-pre-wrap">{subpage.markdown}</div>
+                      <h4 className={`text-base font-bold mb-3 flex items-center gap-2 ${
+                        theme === 'dark' ? 'text-slate-100' : 'text-slate-900'
+                      }`}>
+                        <span className={`inline-block w-2 h-2 rounded-full ${
+                          theme === 'dark' ? 'bg-[#aa0000]' : 'bg-[#aa0000]'
+                        }`}></span>
+                        {subpage.title}
+                      </h4>
+                      <div className={`text-sm leading-relaxed ${
+                        theme === 'dark' ? 'text-slate-300' : 'text-slate-700'
+                      }`}>
+                        <div className="whitespace-pre-wrap">{subpage.markdown}</div>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className={`p-8 rounded-2xl border text-center ${
+                  theme === 'dark' 
+                    ? 'bg-white/5 border-white/10' 
+                    : 'bg-slate-50 border-slate-200'
+                }`}>
+                  <p className={`text-sm ${
+                    theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
+                  }`}>
+                    この市場セグメントには、Notionの子ページ（インサイト情報）がまだ登録されていません。<br />
+                    Notionで子ページを追加し、「Notion同期」ボタンをクリックしてデータを更新してください。
+                  </p>
+                </div>
+              )}
             </section>
           )}
 

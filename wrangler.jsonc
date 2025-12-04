@@ -10,7 +10,7 @@
     {
       "binding": "DB",
       "database_name": "notion-market-intel",
-      "database_id": "00000000-0000-0000-0000-000000000000" // TODO: replace with production database id
+      "database_id": "0d0d3018-b9a4-45c7-9b57-56ad42548f8b"
     }
   ]
   // "vars": {

@@ -124,6 +124,13 @@ export function App(): JSX.Element {
     return Array.from(new Set(records.map((record) => record.year))).sort((a, b) => b - a)
   }, [records])
 
+  // Auto-select all segments on initial load
+  useEffect(() => {
+    if (segments.length > 0 && selectedSegments.length === 0) {
+      setSelectedSegments(segments)
+    }
+  }, [segments])
+
   const keyword = issueKeyword.trim().toLowerCase()
 
   const filteredRecords = useMemo(() => {

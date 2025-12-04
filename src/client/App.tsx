@@ -386,13 +386,13 @@ export function App(): JSX.Element {
             {metricCards.map((metric) => (
               <div
                 key={metric.label}
-                className={`rounded-3xl border px-8 py-8 shadow-xl text-center ${
+                className={`rounded-3xl border px-8 py-5 shadow-xl text-center ${
                   theme === 'dark'
                     ? 'border-white/10 bg-white/5 text-slate-200'
                     : 'border-slate-300 bg-slate-100 text-slate-800'
                 }`}
               >
-                <p className={`text-sm uppercase tracking-[0.4em] font-bold mb-4 ${
+                <p className={`text-sm uppercase tracking-[0.4em] font-bold mb-3 ${
                   theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
                 }`}>{metric.label}</p>
                 <p className={`text-5xl font-black tracking-tight ${
@@ -401,12 +401,12 @@ export function App(): JSX.Element {
               </div>
             ))}
             {/* Main Players */}
-            <div className={`rounded-3xl border px-8 py-8 shadow-xl text-center ${
+            <div className={`rounded-3xl border px-8 py-5 shadow-xl text-center ${
               theme === 'dark'
                 ? 'border-white/10 bg-white/5 text-slate-200'
                 : 'border-slate-300 bg-slate-100 text-slate-800'
             }`}>
-              <p className={`text-sm uppercase tracking-[0.4em] font-bold mb-4 ${
+              <p className={`text-sm uppercase tracking-[0.4em] font-bold mb-3 ${
                 theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
               }`}>主要プレイヤー</p>
               <div className="flex flex-wrap gap-2 justify-center">

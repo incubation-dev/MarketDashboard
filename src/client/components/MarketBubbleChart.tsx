@@ -15,10 +15,132 @@ import { formatMarketSize, formatPercent } from '../lib/format'
 
 ChartJS.register(BubbleController, LinearScale, PointElement, Tooltip, Legend, Filler)
 
+// Custom plugin for drawing labels with leader lines
+const labelPlugin = {
+  id: 'labelPlugin',
+  afterDatasetsDraw(chart: any, _args: any, options: any) {
+    if (!options.showLabels) return
+
+    const ctx = chart.ctx
+    const datasets = chart.data.datasets
+
+    ctx.save()
+    ctx.font = '11px Yu Gothic UI, Yu Gothic, sans-serif'
+    ctx.textBaseline = 'middle'
+
+    const labels: Array<{
+      x: number
+      y: number
+      text: string
+      bubbleX: number
+      bubbleY: number
+      bubbleR: number
+    }> = []
+
+    // Collect all label positions
+    datasets.forEach((dataset: any, datasetIndex: number) => {
+      const meta = chart.getDatasetMeta(datasetIndex)
+      
+      dataset.data.forEach((dataPoint: any, index: number) => {
+        const element = meta.data[index]
+        if (!element) return
+
+        const record = dataPoint.record as MarketDataRecord
+        const text = `${record.segment.substring(0, 15)}${record.segment.length > 15 ? '...' : ''}`
+        
+        const bubbleX = element.x
+        const bubbleY = element.y
+        const bubbleR = element.options.radius
+
+        // Calculate label position (offset to avoid overlap)
+        const angle = (datasetIndex * 45 + index * 30) * (Math.PI / 180)
+        const offset = bubbleR + 20
+        const labelX = bubbleX + Math.cos(angle) * offset
+        const labelY = bubbleY + Math.sin(angle) * offset
+
+        labels.push({
+          x: labelX,
+          y: labelY,
+          text,
+          bubbleX,
+          bubbleY,
+          bubbleR
+        })
+      })
+    })
+
+    // Simple collision avoidance (move overlapping labels)
+    for (let i = 0; i < labels.length; i++) {
+      for (let j = i + 1; j < labels.length; j++) {
+        const dx = labels[i].x - labels[j].x
+        const dy = labels[i].y - labels[j].y
+        const distance = Math.sqrt(dx * dx + dy * dy)
+        
+        if (distance < 60) {
+          // Push apart
+          const angle = Math.atan2(dy, dx)
+          const pushDist = (60 - distance) / 2
+          labels[i].x += Math.cos(angle) * pushDist
+          labels[i].y += Math.sin(angle) * pushDist
+          labels[j].x -= Math.cos(angle) * pushDist
+          labels[j].y -= Math.sin(angle) * pushDist
+        }
+      }
+    }
+
+    // Draw labels with leader lines
+    labels.forEach((label) => {
+      const isDark = options.theme === 'dark'
+      
+      // Draw leader line
+      ctx.beginPath()
+      ctx.moveTo(label.bubbleX, label.bubbleY)
+      ctx.lineTo(label.x, label.y)
+      ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)'
+      ctx.lineWidth = 1
+      ctx.stroke()
+
+      // Draw label background
+      const padding = 4
+      const textMetrics = ctx.measureText(label.text)
+      const textWidth = textMetrics.width
+      const textHeight = 16
+
+      ctx.fillStyle = isDark ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.9)'
+      ctx.fillRect(
+        label.x - textWidth / 2 - padding,
+        label.y - textHeight / 2 - padding,
+        textWidth + padding * 2,
+        textHeight + padding * 2
+      )
+
+      // Draw label border
+      ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)'
+      ctx.lineWidth = 1
+      ctx.strokeRect(
+        label.x - textWidth / 2 - padding,
+        label.y - textHeight / 2 - padding,
+        textWidth + padding * 2,
+        textHeight + padding * 2
+      )
+
+      // Draw label text
+      ctx.fillStyle = isDark ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)'
+      ctx.textAlign = 'center'
+      ctx.fillText(label.text, label.x, label.y)
+    })
+
+    ctx.restore()
+  }
+}
+
+ChartJS.register(labelPlugin)
+
 type MarketBubbleChartProps = {
   data: MarketDataRecord[]
   selectedId?: number
   onSelect: (record: MarketDataRecord) => void
+  showLabels?: boolean
   theme?: 'light' | 'dark'
 }
 
@@ -28,7 +150,7 @@ const fallbackValue = (value: number | null | undefined, defaultValue: number) =
   typeof value === 'number' && Number.isFinite(value) ? value : defaultValue
 
 export const MarketBubbleChart = forwardRef<ChartJSOrUndefined<'bubble'>, MarketBubbleChartProps>(
-  ({ data, selectedId, onSelect, theme = 'dark' }, ref) => {
+  ({ data, selectedId, onSelect, showLabels = false, theme = 'dark' }, ref) => {
     const isDark = theme === 'dark'
   
   console.log('[MarketBubbleChart] Received data:', data.length, 'records')
@@ -131,9 +253,13 @@ export const MarketBubbleChart = forwardRef<ChartJSOrUndefined<'bubble'>, Market
           responsive: true,
           maintainAspectRatio: false,
           layout: {
-            padding: 20
+            padding: showLabels ? 60 : 20
           },
           plugins: {
+            labelPlugin: {
+              showLabels,
+              theme
+            } as any,
             legend: {
               display: data.length > 1,
               position: 'bottom' as const,

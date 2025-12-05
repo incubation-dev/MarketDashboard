@@ -81,8 +81,10 @@ export function App(): JSX.Element {
   const chartRef = useRef<ChartJSOrUndefined<'bubble'>>(null)
 
   const [selectedSegments, setSelectedSegments] = useState<string[]>([])
+  const [selectedRegions, setSelectedRegions] = useState<string[]>([])
   const [issueKeyword, setIssueKeyword] = useState<string>('')
   const [selectedYear, setSelectedYear] = useState<number | 'ALL'>(2030)
+  const [showLabels, setShowLabels] = useState(false)
   const [selectedRecord, setSelectedRecord] = useState<MarketDataRecord | null>(null)
   const [aiChatLoading, setAiChatLoading] = useState(false)
   const [chatModalOpen, setChatModalOpen] = useState(false)
@@ -116,6 +118,11 @@ export function App(): JSX.Element {
     return Array.from(new Set(records.map((record) => record.segment))).sort((a, b) => a.localeCompare(b))
   }, [records])
 
+  const regions = useMemo(() => {
+    const regionSet = new Set(records.map((record) => record.region).filter(Boolean))
+    return Array.from(regionSet).sort((a, b) => a!.localeCompare(b!))
+  }, [records])
+
   const years = useMemo(() => {
     return Array.from(new Set(records.map((record) => record.year))).sort((a, b) => b - a)
   }, [records])
@@ -127,11 +134,19 @@ export function App(): JSX.Element {
     }
   }, [segments])
 
+  // Auto-select all regions on initial load
+  useEffect(() => {
+    if (regions.length > 0 && selectedRegions.length === 0) {
+      setSelectedRegions(regions)
+    }
+  }, [regions])
+
   const keyword = issueKeyword.trim().toLowerCase()
 
   const filteredRecords = useMemo(() => {
     return records.filter((record) => {
       if (selectedSegments.length > 0 && !selectedSegments.includes(record.segment)) return false
+      if (selectedRegions.length > 0 && record.region && !selectedRegions.includes(record.region)) return false
       if (selectedYear !== 'ALL' && record.year !== selectedYear) return false
       if (keyword.length > 0) {
         const haystacks = [record.issue, record.summary, ...record.players].filter(Boolean)
@@ -140,7 +155,7 @@ export function App(): JSX.Element {
       }
       return true
     })
-  }, [records, selectedSegments, selectedYear, keyword])
+  }, [records, selectedSegments, selectedRegions, selectedYear, keyword])
 
   useEffect(() => {
     if (filteredRecords.length === 0) {
@@ -518,11 +533,16 @@ export function App(): JSX.Element {
             segments={segments}
             selectedSegments={selectedSegments}
             onSegmentsChange={setSelectedSegments}
+            regions={regions}
+            selectedRegions={selectedRegions}
+            onRegionsChange={setSelectedRegions}
             issueKeyword={issueKeyword}
             onIssueChange={setIssueKeyword}
             years={years}
             selectedYear={selectedYear}
             onYearChange={setSelectedYear}
+            showLabels={showLabels}
+            onShowLabelsChange={setShowLabels}
             onRunResearch={handleRunResearch}
             researchLoading={aiLoading}
             onSync={handleSync}
@@ -582,6 +602,7 @@ export function App(): JSX.Element {
                 data={filteredRecords}
                 selectedId={selectedRecord?.id}
                 onSelect={setSelectedRecord}
+                showLabels={showLabels}
                 theme={theme}
               />
             </div>

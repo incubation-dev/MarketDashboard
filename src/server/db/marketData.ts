@@ -10,6 +10,7 @@ export type DbMarketDataRow = {
   segment: string
   issue: string | null
   year: number
+  region: string | null
   market_size: number | null
   growth_rate: number | null
   top10_ratio: number | null
@@ -31,6 +32,7 @@ const SELECT_BASE = `
     segment,
     issue,
     year,
+    region,
     market_size,
     growth_rate,
     top10_ratio,
@@ -83,6 +85,7 @@ const toRecord = (row: DbMarketDataRow): MarketDataRecord => {
     segment: row.segment,
     issue: row.issue ?? null,
     year: row.year,
+    region: row.region ?? null,
     marketSize: row.market_size ?? null,
     growthRate: row.growth_rate ?? null,
     top10Ratio: row.top10_ratio ?? null,
@@ -124,6 +127,10 @@ export const listMarketData = async (
     if (filter.year !== undefined) {
       conditions.push('year = ?')
       values.push(filter.year)
+    }
+    if (filter.region) {
+      conditions.push('region = ?')
+      values.push(filter.region)
     }
     if (filter.notionPageId) {
       conditions.push('notion_page_id = ?')
@@ -205,6 +212,7 @@ export const upsertMarketData = async (
     segment: input.segment.trim(),
     issue,
     year: input.year,
+    region: input.region ?? null,
     marketSize: input.marketSize ?? null,
     growthRate: input.growthRate ?? null,
     top10Ratio: input.top10Ratio ?? null,
@@ -225,6 +233,7 @@ export const upsertMarketData = async (
          SET segment = ?,
              issue = ?,
              year = ?,
+             region = ?,
              market_size = ?,
              growth_rate = ?,
              top10_ratio = ?,
@@ -243,6 +252,7 @@ export const upsertMarketData = async (
         payload.segment,
         payload.issue,
         payload.year,
+        payload.region,
         payload.marketSize,
         payload.growthRate,
         payload.top10Ratio,
@@ -284,6 +294,7 @@ export const upsertMarketData = async (
         segment,
         issue,
         year,
+        region,
         market_size,
         growth_rate,
         top10_ratio,
@@ -297,12 +308,13 @@ export const upsertMarketData = async (
         last_synced_at,
         created_at,
         updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`
     )
     .bind(
       payload.segment,
       payload.issue,
       payload.year,
+      payload.region,
       payload.marketSize,
       payload.growthRate,
       payload.top10Ratio,

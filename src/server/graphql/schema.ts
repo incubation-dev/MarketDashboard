@@ -13,6 +13,7 @@ const filterSchema = z.object({
   segment: z.string().min(1).optional(),
   issueContains: z.string().min(1).optional(),
   year: z.coerce.number().int().optional(),
+  region: z.string().min(1).optional(),
   notionPageId: z.string().min(1).optional()
 })
 
@@ -28,6 +29,7 @@ const inputSchema = z.object({
   segment: z.string().min(1),
   issue: z.string().optional().nullable(),
   year: z.coerce.number().int(),
+  region: z.string().optional().nullable(),
   marketSize: z.number().optional().nullable(),
   growthRate: z.number().optional().nullable(),
   top10Ratio: z.number().optional().nullable(),
@@ -54,6 +56,7 @@ const typeDefs = /* GraphQL */ `
     segment: String!
     issue: String
     year: Int!
+    region: String
     marketSize: Float
     growthRate: Float
     top10Ratio: Float
@@ -74,6 +77,7 @@ const typeDefs = /* GraphQL */ `
     segment: String
     issueContains: String
     year: Int
+    region: String
     notionPageId: String
   }
 
@@ -89,6 +93,7 @@ const typeDefs = /* GraphQL */ `
     segment: String!
     issue: String
     year: Int!
+    region: String
     marketSize: Float
     growthRate: Float
     top10Ratio: Float

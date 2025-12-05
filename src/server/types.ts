@@ -19,6 +19,7 @@ export type MarketDataRecord = {
   segment: string
   issue: string | null
   year: number
+  region: string | null
   marketSize: number | null
   growthRate: number | null
   top10Ratio: number | null
@@ -47,6 +48,7 @@ export type MarketDataInput = {
   segment: string
   issue?: string | null
   year: number
+  region?: string | null
   marketSize?: number | null
   growthRate?: number | null
   top10Ratio?: number | null

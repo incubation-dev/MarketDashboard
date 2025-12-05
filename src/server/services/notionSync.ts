@@ -314,6 +314,8 @@ const mapPageToMarketDataInputs = async (
 
   const issue =
     parseRichTextProperty(properties['課題']) ?? parseRichTextProperty(properties['Issue']) ?? null
+  
+  const region = parseRichTextProperty(properties['領域']) ?? null
 
   const growthRate = parseNumberProperty(properties['市場成長率（CAGR％）'])
   const top10Ratio = parseNumberProperty(properties['上位10社市場占有率(%)'])
@@ -361,6 +363,7 @@ const mapPageToMarketDataInputs = async (
       segment,
       issue,
       year: numericYear,
+      region,
       marketSize,
       growthRate,
       top10Ratio,
@@ -383,6 +386,7 @@ const mapPageToMarketDataInputs = async (
       segment,
       issue,
       year: fallbackYear,
+      region,
       marketSize: parseNumberProperty(properties[NOTION_YEAR_PROPERTY_MAP[fallbackYear]]) ?? null,
       growthRate,
       top10Ratio,

@@ -301,11 +301,29 @@ export const MarketBubbleChart = forwardRef<ChartJSOrUndefined<'bubble'>, Market
               grid: {
                 color: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'
               },
-              min: 0,
-              max: (() => {
+              min: (() => {
+                const minX = data.reduce((min, r) => Math.min(min, r.top10Ratio ?? 0), Infinity)
                 const maxX = data.reduce((max, r) => Math.max(max, r.top10Ratio ?? 0), 0)
-                const calculatedMax = Math.ceil(maxX * 1.2)
-                return Math.max(calculatedMax, 100)
+                const range = maxX - minX
+                
+                // データの範囲が狭い場合（範囲が20%未満）は余白を少なくする
+                if (range < 20) {
+                  return Math.max(0, Math.floor(minX - range * 0.2))
+                }
+                // 広い場合は通常の余白
+                return Math.max(0, Math.floor(minX - 5))
+              })(),
+              max: (() => {
+                const minX = data.reduce((min, r) => Math.min(min, r.top10Ratio ?? 0), Infinity)
+                const maxX = data.reduce((max, r) => Math.max(max, r.top10Ratio ?? 0), 0)
+                const range = maxX - minX
+                
+                // データの範囲が狭い場合は余白を少なくする
+                if (range < 20) {
+                  return Math.ceil(maxX + range * 0.2)
+                }
+                // 広い場合は通常の余白
+                return Math.ceil(maxX + 10)
               })()
             },
             y: {
@@ -321,14 +339,28 @@ export const MarketBubbleChart = forwardRef<ChartJSOrUndefined<'bubble'>, Market
                 color: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'
               },
               min: (() => {
-                const minY = data.reduce((min, r) => Math.min(min, r.growthRate ?? 0), 0)
-                const calculatedMin = minY < 0 ? Math.floor(minY * 1.2) : Math.floor(minY - 5)
-                return Math.max(calculatedMin, -10)
+                const minY = data.reduce((min, r) => Math.min(min, r.growthRate ?? 0), Infinity)
+                const maxY = data.reduce((max, r) => Math.max(max, r.growthRate ?? 0), -Infinity)
+                const range = maxY - minY
+                
+                // データの範囲が狭い場合（範囲が20%未満）は余白を少なくする
+                if (range < 20) {
+                  return Math.floor(minY - range * 0.2)
+                }
+                // 広い場合は通常の余白
+                return Math.floor(minY - 5)
               })(),
               max: (() => {
-                const maxY = data.reduce((max, r) => Math.max(max, r.growthRate ?? 0), 0)
-                const calculatedMax = Math.ceil(maxY * 1.15)
-                return Math.min(Math.max(calculatedMax, 60), 100)
+                const minY = data.reduce((min, r) => Math.min(min, r.growthRate ?? 0), Infinity)
+                const maxY = data.reduce((max, r) => Math.max(max, r.growthRate ?? 0), -Infinity)
+                const range = maxY - minY
+                
+                // データの範囲が狭い場合は余白を少なくする
+                if (range < 20) {
+                  return Math.ceil(maxY + range * 0.2)
+                }
+                // 広い場合は通常の余白
+                return Math.ceil(maxY + 10)
               })()
             }
           },

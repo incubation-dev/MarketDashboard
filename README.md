@@ -112,7 +112,10 @@ pm2 start ecosystem.config.cjs
 - API Endpoint: `https://api.pdfshift.io/v3/convert/pdf`
 - 認証: Basic 認証 (`api:PDFSHIFT_API_KEY`)
 - `POST /api/report` に `chartImageData`(data URL) を渡すと、チャート画像がレポートに埋め込まれます。
-- 生成された PDF はダウンロード用 `Content-Disposition` を指定して返却。
+- **フォント**: Yu Gothic UI (游ゴシック体) を使用し、日本語を美しく表示
+- **レイアウト**: A4サイズ、洗練されたスタイリング、#aa0000 のブランドカラー
+- **構成**: 主要指標（市場規模、成長率、上位10社シェア）→ グラフ → 市場インサイト → 主要プレイヤー → 参考リンク
+- 生成された PDF は新しいウィンドウでプレビュー表示され、ダウンロードボタンで保存可能
 
 ## Cron Trigger 設定例
 `wrangler.toml` ではなく Dashboard から Cron Trigger を設定してください。

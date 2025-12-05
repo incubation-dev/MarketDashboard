@@ -31,6 +31,7 @@ const MARKET_DATA_QUERY = `
     marketData {
       id
       segment
+      region
       issue
       year
       marketSize

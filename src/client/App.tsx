@@ -4,7 +4,7 @@ import { FilterBar } from './components/FilterBar'
 import { MarketBubbleChart } from './components/MarketBubbleChart'
 import type { ChartJSOrUndefined } from 'react-chartjs-2'
 // PlayerMetricCard removed - now using compact inline display
-import { DetailPanel } from './components/DetailPanel'
+// DetailPanel removed - PDF preview in separate window
 import { StatusToast } from './components/StatusToast'
 // LoadingOverlay removed - using inline loading indicators instead
 import { AiChatModal } from './components/AiChatModal'
@@ -314,15 +314,128 @@ export function App(): JSX.Element {
         id: selectedRecord.id,
         chartImageData: chartImageData ?? null
       })
-      const url = URL.createObjectURL(blob)
-      const anchor = document.createElement('a')
-      anchor.href = url
-      anchor.download = `${selectedRecord.segment.replace(/[^a-zA-Z0-9\-_.]/g, '_')}_${selectedRecord.year}.pdf`
-      document.body.appendChild(anchor)
-      anchor.click()
-      anchor.remove()
-      URL.revokeObjectURL(url)
-      setStatus({ message: 'PDFレポートを生成しました', type: 'success' })
+      
+      // Open PDF in a new window with download button
+      const pdfUrl = URL.createObjectURL(blob)
+      const pdfWindow = window.open('', '_blank', 'width=900,height=700,resizable=yes,scrollbars=yes')
+      
+      if (pdfWindow) {
+        const filename = `${selectedRecord.segment.replace(/[^a-zA-Z0-9\-_.]/g, '_')}_${selectedRecord.year}.pdf`
+        
+        pdfWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>PDF Preview - ${selectedRecord.segment}</title>
+            <style>
+              * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+              }
+              body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+                color: #fff;
+                display: flex;
+                flex-direction: column;
+                height: 100vh;
+                overflow: hidden;
+              }
+              .header {
+                background: rgba(0, 0, 0, 0.3);
+                padding: 16px 24px;
+                border-bottom: 1px solid rgba(170, 0, 0, 0.3);
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                backdrop-filter: blur(10px);
+              }
+              .header h1 {
+                font-size: 18px;
+                font-weight: 600;
+                color: #fff;
+              }
+              .download-btn {
+                background: #aa0000;
+                color: #fff;
+                border: none;
+                padding: 10px 24px;
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+              }
+              .download-btn:hover {
+                background: #cc0000;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(170, 0, 0, 0.4);
+              }
+              .download-btn:active {
+                transform: translateY(0);
+              }
+              .pdf-container {
+                flex: 1;
+                padding: 16px;
+                overflow: auto;
+                display: flex;
+                justify-content: center;
+                align-items: flex-start;
+                background: rgba(0, 0, 0, 0.2);
+              }
+              embed {
+                border: 1px solid rgba(170, 0, 0, 0.3);
+                border-radius: 8px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+                width: 100%;
+                height: calc(100vh - 80px);
+              }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>📄 ${selectedRecord.segment} (${selectedRecord.year}年)</h1>
+              <button class="download-btn" onclick="downloadPdf()">
+                <span>⬇</span>
+                <span>PDFをダウンロード</span>
+              </button>
+            </div>
+            <div class="pdf-container">
+              <embed src="${pdfUrl}" type="application/pdf" />
+            </div>
+            <script>
+              function downloadPdf() {
+                const a = document.createElement('a');
+                a.href = '${pdfUrl}';
+                a.download = '${filename}';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+              }
+            </script>
+          </body>
+          </html>
+        `)
+        pdfWindow.document.close()
+        
+        setStatus({ message: 'PDFプレビューを新しいウィンドウで開きました', type: 'success' })
+      } else {
+        // Fallback if popup blocked
+        const anchor = document.createElement('a')
+        anchor.href = pdfUrl
+        anchor.download = filename
+        document.body.appendChild(anchor)
+        anchor.click()
+        anchor.remove()
+        URL.revokeObjectURL(pdfUrl)
+        setStatus({ message: 'PDFレポートをダウンロードしました', type: 'success' })
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'PDFレポート生成に失敗しました'
       setStatus({ message, type: 'error' })
@@ -547,12 +660,33 @@ export function App(): JSX.Element {
             </section>
           )}
 
-          <DetailPanel
-            record={selectedRecord}
-            onDownloadPdf={handleDownloadPdf}
-            pdfLoading={pdfLoading}
-            theme={theme}
-          />
+          {/* PDF Download Button - Standalone */}
+          {selectedRecord && (
+            <div className="flex justify-center mt-8" data-animate>
+              <button
+                type="button"
+                className={`px-8 py-4 rounded-2xl font-semibold text-lg shadow-xl transition-all flex items-center gap-3 ${
+                  theme === 'dark'
+                    ? 'bg-[#aa0000] hover:bg-[#cc0000] text-white'
+                    : 'bg-[#aa0000] hover:bg-[#cc0000] text-white'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                onClick={handleDownloadPdf}
+                disabled={pdfLoading}
+              >
+                {pdfLoading ? (
+                  <>
+                    <span className="animate-spin">⏳</span>
+                    <span>PDF生成中...</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-2xl">📄</span>
+                    <span>PDFレポート出力</span>
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </main>
       </div>
 

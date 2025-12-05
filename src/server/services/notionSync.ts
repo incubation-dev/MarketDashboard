@@ -326,44 +326,12 @@ const mapPageToMarketDataInputs = async (
   
   console.log(`[notionSync] Processing page: ${segment} (ID: ${notionPageId})`)
   
+  // Skip subpage collection during sync for performance
+  // Use /api/fetch-page-content endpoint to fetch on-demand
   let subpages: MarketDataSubpage[] = []
-  try {
-    subpages = await collectSubpages(env, notionPageId, segment)
-    console.log(`[notionSync] Collected ${subpages.length} subpages for segment: ${segment}`)
-    if (subpages.length > 0) {
-      console.log(`[notionSync] Subpage titles: ${subpages.map((s) => s.title).join(', ')}`)
-      console.log(`[notionSync] First subpage markdown length: ${subpages[0].markdown.length} chars`)
-    } else {
-      console.log(`[notionSync] No subpages found for ${segment}`)
-    }
-  } catch (error) {
-    console.error(`Failed to collect subpages for ${notionPageId}:`, error)
-    // Continue processing without subpages
-  }
 
-  // If no subpages found, use page content as insights
-  let pageContent = ''
-  if (subpages.length === 0) {
-    try {
-      console.log(`[notionSync] No subpages found, fetching page content for: ${segment}`)
-      const pageBlocks = await fetchAllBlockChildren(env, notionPageId)
-      if (pageBlocks.length > 0) {
-        pageContent = renderBlocksToMarkdown(pageBlocks)
-        console.log(`[notionSync] Fetched ${pageBlocks.length} blocks (${pageContent.length} chars) for ${segment}`)
-      }
-    } catch (error) {
-      console.error(`Failed to fetch page content for ${notionPageId}:`, error)
-    }
-  }
-
-  const subpageMarkdown =
-    subpages.length > 0
-      ? subpages
-          .map((subpage) => `### ${subpage.title}\n${subpage.markdown}`)
-          .join('\n\n')
-      : null
-  
-  const summaryPieces = [remarks, subpageMarkdown, pageContent].filter(Boolean) as string[]
+  // Skip page content fetch during sync - use /api/fetch-page-content for on-demand fetching
+  const summaryPieces = [remarks].filter(Boolean) as string[]
 
   const inputs: MarketDataInput[] = []
 
@@ -422,6 +390,7 @@ const mapPageToMarketDataInputs = async (
 
 export type NotionSyncOptions = {
   segment?: string
+  includePageContent?: boolean // Skip page content for faster sync
 }
 
 export type NotionSyncResult = {

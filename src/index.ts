@@ -89,6 +89,57 @@ app.post('/api/sync', async (c) => {
   }
 })
 
+// Endpoint to fetch page content for a specific segment
+app.post('/api/fetch-page-content', async (c) => {
+  try {
+    const { segment, year } = await c.req.json()
+    
+    if (!segment) {
+      return c.json({ status: 'error', message: 'Segment is required' }, 400)
+    }
+    
+    const { fetchDatabasePages, fetchAllBlockChildren, renderBlocksToMarkdown } = await import('./server/services/notionSync')
+    const { upsertMarketData, findMarketDataByCompositeKey } = await import('./server/db/marketData')
+    
+    // Find the page in Notion
+    const pages = await fetchDatabasePages(c.env, c.env.NOTION_DATABASE_ID, segment)
+    if (pages.length === 0) {
+      return c.json({ status: 'not_found', segment })
+    }
+    
+    const page = pages[0]
+    const notionPageId = page.id
+    
+    // Fetch page blocks
+    const pageBlocks = await fetchAllBlockChildren(c.env, notionPageId)
+    const pageContent = renderBlocksToMarkdown(pageBlocks)
+    
+    // Find existing record
+    const existingRecord = await findMarketDataByCompositeKey(c.env.DB, segment, null, year || 2030)
+    
+    if (existingRecord) {
+      // Update summary with page content
+      const updatedSummary = [existingRecord.summary, pageContent].filter(Boolean).join('\n\n')
+      await upsertMarketData(c.env.DB, {
+        ...existingRecord,
+        summary: updatedSummary
+      })
+      
+      return c.json({
+        status: 'ok',
+        segment,
+        pageContentLength: pageContent.length,
+        blocksCount: pageBlocks.length
+      })
+    }
+    
+    return c.json({ status: 'no_record', segment })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return c.json({ status: 'error', message }, 500)
+  }
+})
+
 // Debug endpoint to find page ID by segment name
 app.get('/api/debug/find-page/:segment', async (c) => {
   const segment = decodeURIComponent(c.req.param('segment'))

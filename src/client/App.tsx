@@ -176,6 +176,44 @@ export function App(): JSX.Element {
   const aggregate = useMemo(() => computeAggregateMetrics(filteredRecords), [filteredRecords])
   const aggregatedPlayers = useMemo(() => collectTopPlayers(filteredRecords), [filteredRecords])
 
+  // Simple Markdown to HTML parser
+  const parseMarkdownToHtml = (markdown: string, theme: 'light' | 'dark'): string => {
+    const isDark = theme === 'dark'
+    
+    return markdown
+      // Headers
+      .replace(/^### (.+)$/gm, `<h3 class="text-lg font-bold mt-6 mb-3 ${isDark ? 'text-slate-100' : 'text-slate-900'}"}>$1</h3>`)
+      .replace(/^## (.+)$/gm, `<h2 class="text-xl font-bold mt-8 mb-4 ${isDark ? 'text-white' : 'text-slate-900'}"}>$1</h2>`)
+      .replace(/^# (.+)$/gm, `<h1 class="text-2xl font-bold mt-8 mb-4 ${isDark ? 'text-white' : 'text-slate-900'}"}>$1</h1>`)
+      
+      // Bold
+      .replace(/\*\*(.+?)\*\*/g, '<strong class="font-bold">$1</strong>')
+      
+      // Links
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-[#aa0000] hover:underline">$1</a>')
+      
+      // Lists (ordered)
+      .replace(/^\d+\.\s+(.+)$/gm, (match) => {
+        return `<li class="ml-6 mb-2">${match.replace(/^\d+\.\s+/, '')}</li>`
+      })
+      
+      // Lists (unordered)
+      .replace(/^-\s+(.+)$/gm, '<li class="ml-6 mb-2 list-disc">$1</li>')
+      
+      // Horizontal rule
+      .replace(/^---$/gm, `<hr class="my-6 ${isDark ? 'border-white/20' : 'border-slate-300'}" />`)
+      
+      // Paragraphs (preserve line breaks)
+      .split('\n\n')
+      .map(para => {
+        if (para.trim().startsWith('<h') || para.trim().startsWith('<li') || para.trim().startsWith('<hr')) {
+          return para
+        }
+        return `<p class="mb-4">${para.replace(/\n/g, '<br />')}</p>`
+      })
+      .join('')
+  }
+
   const handleRunResearch = async () => {
     const targetSegment = selectedSegments.length > 0 ? selectedSegments[0] : segments[0]
     if (!targetSegment) {
@@ -483,11 +521,14 @@ export function App(): JSX.Element {
                     ? 'bg-white/5 border-white/10' 
                     : 'bg-slate-50 border-slate-200'
                 }`}>
-                  <div className={`text-sm leading-relaxed ${
-                    theme === 'dark' ? 'text-slate-300' : 'text-slate-700'
-                  }`}>
-                    <div className="whitespace-pre-wrap">{selectedRecord.summary}</div>
-                  </div>
+                  <div 
+                    className={`markdown-content text-sm leading-relaxed ${
+                      theme === 'dark' ? 'text-slate-300' : 'text-slate-700'
+                    }`}
+                    dangerouslySetInnerHTML={{ 
+                      __html: parseMarkdownToHtml(selectedRecord.summary, theme) 
+                    }}
+                  />
                 </div>
               ) : (
                 <div className={`p-8 rounded-2xl border text-center ${

@@ -326,12 +326,24 @@ const mapPageToMarketDataInputs = async (
   
   console.log(`[notionSync] Processing page: ${segment} (ID: ${notionPageId})`)
   
-  // Skip subpage collection during sync for performance
-  // Use /api/fetch-page-content endpoint to fetch on-demand
+  // Skip subpage collection (pages don't have child pages)
   let subpages: MarketDataSubpage[] = []
+  
+  // Fetch page content as insights
+  let pageContent = ''
+  try {
+    console.log(`[notionSync] Fetching page content for: ${segment}`)
+    const pageBlocks = await fetchAllBlockChildren(env, notionPageId)
+    if (pageBlocks.length > 0) {
+      pageContent = renderBlocksToMarkdown(pageBlocks)
+      console.log(`[notionSync] Fetched ${pageBlocks.length} blocks (${pageContent.length} chars) for ${segment}`)
+    }
+  } catch (error) {
+    console.error(`Failed to fetch page content for ${notionPageId}:`, error)
+  }
 
-  // Skip page content fetch during sync - use /api/fetch-page-content for on-demand fetching
-  const summaryPieces = [remarks].filter(Boolean) as string[]
+  // Include page content in summary
+  const summaryPieces = [remarks, pageContent].filter(Boolean) as string[]
 
   const inputs: MarketDataInput[] = []
 
@@ -390,7 +402,8 @@ const mapPageToMarketDataInputs = async (
 
 export type NotionSyncOptions = {
   segment?: string
-  includePageContent?: boolean // Skip page content for faster sync
+  limit?: number // Max pages to sync (for progressive sync)
+  offset?: number // Skip first N pages (for progressive sync)
 }
 
 export type NotionSyncResult = {
@@ -412,8 +425,19 @@ export const syncNotionMarketData = async (
     throw new Error('NotionデータベースIDが設定されていません')
   }
 
-  const pages = await fetchDatabasePages(env, env.NOTION_DATABASE_ID, options.segment)
-  console.log(`[syncNotionMarketData] Starting sync for ${pages.length} pages`)
+  let pages = await fetchDatabasePages(env, env.NOTION_DATABASE_ID, options.segment)
+  
+  // Apply pagination if specified
+  const offset = options.offset || 0
+  const limit = options.limit
+  
+  if (offset > 0 || limit) {
+    const end = limit ? offset + limit : pages.length
+    pages = pages.slice(offset, end)
+    console.log(`[syncNotionMarketData] Progressive sync: processing ${pages.length} pages (offset: ${offset}, limit: ${limit || 'none'})`)
+  } else {
+    console.log(`[syncNotionMarketData] Full sync: processing ${pages.length} pages`)
+  }
   
   let upserted = 0
   let skipped = 0
@@ -422,10 +446,13 @@ export const syncNotionMarketData = async (
   let pagesWithSubpages = 0
 
   // Process in smaller batches to avoid timeout
-  const batchSize = 10
+  // Batch size = 5 due to page content fetching (each page = ~100 blocks)
+  const batchSize = 5
   for (let i = 0; i < pages.length; i += batchSize) {
     const batch = pages.slice(i, i + batchSize)
-    console.log(`[syncNotionMarketData] Processing batch ${Math.floor(i / batchSize) + 1} (${batch.length} pages)`)
+    const batchNum = Math.floor(i / batchSize) + 1
+    const totalBatches = Math.ceil(pages.length / batchSize)
+    console.log(`[syncNotionMarketData] Processing batch ${batchNum}/${totalBatches} (${batch.length} pages)`)
     
     for (const page of batch) {
       try {

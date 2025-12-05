@@ -70,16 +70,24 @@ app.get('/healthz', (c) =>
 app.post('/api/sync', async (c) => {
   const payload = await c.req
     .json()
-    .catch(() => ({ segment: undefined })) as { segment?: string | null }
+    .catch(() => ({ segment: undefined, limit: undefined, offset: undefined })) as { 
+      segment?: string | null
+      limit?: number
+      offset?: number
+    }
   const segment = typeof payload?.segment === 'string' ? payload.segment.trim() : undefined
+  const limit = payload?.limit
+  const offset = payload?.offset || 0
 
   try {
-    const result = await syncNotionMarketData(c.env, { segment })
+    const result = await syncNotionMarketData(c.env, { segment, limit, offset })
     // Include debug info in response for testing
     const debugInfo = {
       hasNotionApiKey: !!c.env.NOTION_API_KEY,
       hasNotionDatabaseId: !!c.env.NOTION_DATABASE_ID,
-      requestedSegment: segment ?? null
+      requestedSegment: segment ?? null,
+      limit,
+      offset
     }
     return c.json({ status: 'ok', debug: debugInfo, result })
   } catch (error) {

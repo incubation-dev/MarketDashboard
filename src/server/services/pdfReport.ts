@@ -43,25 +43,57 @@ const renderLinks = (links: string[]) => {
   `
 }
 
+const renderMarkdownToHtml = (markdown: string): string => {
+  return escapeHtml(markdown)
+    // Headers
+    .replace(/^### (.+)$/gm, '<h4 style="font-size: 14px; color: #333; margin: 14px 0 8px; font-weight: 600;">$1</h4>')
+    .replace(/^## (.+)$/gm, '<h3 style="font-size: 16px; color: #1a1a1a; margin: 18px 0 10px; font-weight: 600;">$1</h3>')
+    .replace(/^# (.+)$/gm, '<h2 style="font-size: 18px; color: #aa0000; margin: 20px 0 12px; font-weight: 600;">$1</h2>')
+    // Bold
+    .replace(/\*\*(.+?)\*\*/g, '<strong style="font-weight: 600; color: #1a1a1a;">$1</strong>')
+    // Links
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color: #aa0000; text-decoration: none; font-weight: 500;">$1</a>')
+    // Lists
+    .replace(/^- (.+)$/gm, '<li style="margin-bottom: 6px;">$1</li>')
+    // Paragraphs
+    .split('\n\n')
+    .map(para => {
+      if (para.trim().startsWith('<h') || para.trim().startsWith('<li')) {
+        return para
+      }
+      if (para.trim()) {
+        return `<p style="margin-bottom: 10px; line-height: 1.9;">${para.replace(/\n/g, '<br />')}</p>`
+      }
+      return ''
+    })
+    .join('')
+}
+
 const renderSubpages = (record: MarketDataRecord) => {
-  if (record.subpages.length === 0) {
-    return '<p>Notionサブページ情報は未登録です。</p>'
+  if (record.subpages.length === 0 && !record.summary) {
+    return '<p>市場インサイト情報は未登録です。</p>'
   }
+  
+  // If no subpages but summary exists, render summary here
+  if (record.subpages.length === 0 && record.summary) {
+    return `
+      <div class="insight-card">
+        <div class="insight-content">${renderMarkdownToHtml(record.summary)}</div>
+      </div>
+    `
+  }
+  
+  // Render subpages
   return record.subpages
     .map((subpage) => {
       return `
         <div class="insight-card">
           <h3><span class="bullet">●</span>${escapeHtml(subpage.title)}</h3>
-          <div class="insight-content">${escapeHtml(subpage.markdown)}</div>
+          <div class="insight-content">${renderMarkdownToHtml(subpage.markdown)}</div>
         </div>
       `
     })
     .join('')
-}
-
-const renderSummary = (summary: string | null) => {
-  if (!summary) return '<p>サマリーは未登録です。</p>'
-  return `<pre>${escapeHtml(summary)}</pre>`
 }
 
 const renderChartImage = (chartImageData?: string | null) => {
@@ -89,95 +121,158 @@ const renderReportHtml = (
     <style>
       * { box-sizing: border-box; }
       body {
-        font-family: 'Helvetica Neue', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        color: #111827;
+        font-family: 'Yu Gothic UI', 'Yu Gothic', 'Meiryo', 'Hiragino Kaku Gothic ProN', sans-serif;
+        color: #1a1a1a;
         margin: 0;
-        padding: 32px 40px;
-        background: #f7f7f9;
+        padding: 40px 48px;
+        background: #ffffff;
+        line-height: 1.8;
       }
       header {
-        border-bottom: 4px solid ${BRAND_COLOR};
-        padding-bottom: 16px;
-        margin-bottom: 24px;
+        border-bottom: 3px solid ${BRAND_COLOR};
+        padding-bottom: 20px;
+        margin-bottom: 32px;
       }
       h1 {
-        font-size: 28px;
-        margin: 0 0 8px;
+        font-size: 32px;
+        font-weight: 600;
+        margin: 0 0 12px;
         color: ${BRAND_COLOR};
+        letter-spacing: 0.02em;
       }
       h2 {
-        font-size: 20px;
-        margin: 24px 0 12px;
-        color: #111827;
+        font-size: 22px;
+        font-weight: 600;
+        margin: 32px 0 16px;
+        color: #1a1a1a;
+        padding-left: 12px;
+        border-left: 4px solid ${BRAND_COLOR};
       }
       h3 {
-        font-size: 16px;
-        margin: 16px 0 8px;
-        color: #111827;
+        font-size: 18px;
+        font-weight: 600;
+        margin: 20px 0 10px;
+        color: #333333;
       }
       p, li, pre {
-        font-size: 12px;
-        line-height: 1.6;
-        color: #4b5563;
+        font-size: 13px;
+        line-height: 1.9;
+        color: #333333;
       }
       pre {
         white-space: pre-wrap;
-        background: #ffffff;
-        padding: 12px;
-        border-radius: 12px;
-        border: 1px solid #e5e7eb;
+        background: #f8f9fa;
+        padding: 16px;
+        border-radius: 8px;
+        border-left: 3px solid ${BRAND_COLOR};
+        font-family: 'Yu Gothic UI', 'Yu Gothic', 'Meiryo', sans-serif;
       }
-      ul { padding-left: 18px; }
-      ul.links { padding-left: 0; list-style: none; }
-      ul.links li { margin-bottom: 6px; }
-      ul.links a { color: ${BRAND_COLOR}; text-decoration: none; }
-      ul.links a:hover { text-decoration: underline; }
+      ul { 
+        padding-left: 24px;
+        margin: 12px 0;
+      }
+      ul li {
+        margin-bottom: 8px;
+      }
+      ul.links { 
+        padding-left: 0; 
+        list-style: none; 
+      }
+      ul.links li { 
+        margin-bottom: 8px;
+        padding-left: 20px;
+        position: relative;
+      }
+      ul.links li::before {
+        content: "▸";
+        position: absolute;
+        left: 0;
+        color: ${BRAND_COLOR};
+        font-weight: bold;
+      }
+      ul.links a { 
+        color: ${BRAND_COLOR}; 
+        text-decoration: none;
+        font-weight: 500;
+      }
+      ul.links a:hover { 
+        text-decoration: underline; 
+      }
       .pill {
         display: inline-block;
-        background: ${BRAND_COLOR}10;
-        border: 1px solid ${BRAND_COLOR}40;
-        color: ${BRAND_COLOR};
-        padding: 4px 10px;
-        border-radius: 999px;
+        background: ${BRAND_COLOR};
+        color: #ffffff;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-weight: 500;
+        font-size: 12px;
+        margin: 4px 6px 4px 0;
       }
       .metrics {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-        gap: 12px;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin: 20px 0;
       }
       .metric-card {
-        background: #ffffff;
-        padding: 14px 16px;
-        border-radius: 16px;
-        border: 1px solid #e5e7eb;
+        background: #f8f9fa;
+        padding: 18px 20px;
+        border-radius: 12px;
+        border-left: 4px solid ${BRAND_COLOR};
       }
       .metric-card span {
         display: block;
-        font-size: 10px;
-        letter-spacing: 0.4em;
+        font-size: 11px;
+        letter-spacing: 0.1em;
         text-transform: uppercase;
-        color: #9ca3af;
-        margin-bottom: 6px;
+        color: #666666;
+        margin-bottom: 8px;
+        font-weight: 600;
       }
       .metric-card strong {
-        font-size: 18px;
-        color: #111827;
+        font-size: 24px;
+        color: #1a1a1a;
+        font-weight: 600;
       }
       .chart-section {
-        margin: 16px 0 24px;
+        margin: 24px 0 32px;
         text-align: center;
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 12px;
       }
       .chart-section img {
         max-width: 100%;
-        border-radius: 16px;
-        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      }
+      .insight-card {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 16px;
+        border-left: 4px solid ${BRAND_COLOR};
+      }
+      .insight-card h3 {
+        margin-top: 0;
+        color: ${BRAND_COLOR};
+        font-size: 16px;
+      }
+      .insight-card .bullet {
+        color: ${BRAND_COLOR};
+        margin-right: 8px;
+      }
+      .insight-content {
+        margin-top: 12px;
+        line-height: 1.9;
       }
       footer {
-        margin-top: 36px;
-        padding-top: 12px;
-        border-top: 1px dashed #d1d5db;
-        font-size: 10px;
-        color: #6b7280;
+        margin-top: 48px;
+        padding-top: 16px;
+        border-top: 2px solid #e0e0e0;
+        font-size: 11px;
+        color: #666666;
+        text-align: center;
       }
     </style>
   </head>
@@ -203,18 +298,14 @@ const renderReportHtml = (
           <span>上位10社シェア</span>
           <strong>${record.top10Ratio ?? '-'} %</strong>
         </div>
-        <div class="metric-card">
-          <span>最終更新</span>
-          <strong>${record.updatedAt ?? record.lastSyncedAt ?? '-'}</strong>
-        </div>
       </div>
     </section>
 
     ${renderChartImage(options.chartImageData)}
 
     <section>
-      <h2>サマリー</h2>
-      ${renderSummary(record.summary)}
+      <h2>市場インサイト</h2>
+      ${renderSubpages(record)}
     </section>
 
     <section>
@@ -225,11 +316,6 @@ const renderReportHtml = (
     <section>
       <h2>参考リンク</h2>
       ${renderLinks(record.links)}
-    </section>
-
-    <section>
-      <h2>市場インサイト</h2>
-      ${renderSubpages(record)}
     </section>
 
     <footer>
